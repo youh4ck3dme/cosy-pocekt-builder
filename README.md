@@ -1,108 +1,277 @@
-# Cozy AI Studio
+# Cosy Pocket Builder
 
-Brief → live HTML preview. Paper / ink / terracotta. Vanilla generated pages, no Tailwind in the iframe.
+> **Generate, Preview, Export** - Build beautiful web apps from natural language prompts
 
-**Live:** [https://cozy-ai-studio.vercel.app](https://cozy-ai-studio.vercel.app)  
-**Repo (personal Hobby):** [ENZO7700/cozy-ai-studio](https://github.com/ENZO7700/cozy-ai-studio)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FENZO7700%2Fcozy-ai-studio&env=DATABASE_URL,GROK_AUTH_ISSUER,GROK_AUTH_CLIENT_ID,GROK_AUTH_CLIENT_SECRET,BETTER_AUTH_SECRET,XAI_API_KEY&envDescription=Database%20connection%20string%20%2B%20Grok%20Auth%20credentials%20%2B%20xAI%20API%20key)
 
-> The Vercel URL currently serves the GitHub `main` build (option-B Speed Studio). This workspace is ahead of that deploy: Dashboard / Projekty / Promty / Blueprinty, Stop abort, paper PWA (`#12110f`). Until this tree is pushed to `ENZO7700/cozy-ai-studio` and Vercel rebuilds, live `/settings` `/prompts` `/blueprints` stay 404.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
+[![React 19](https://img.shields.io/badge/React-19-61DAFB.svg)](https://react.dev/)
 
-## Install
+**Cosy Pocket Builder** is a powerful, production-ready web application for generating and deploying beautiful, functional web applications from natural language prompts. Built on top of **Cozy AI Studio**, it extends the core functionality with advanced code editing, export tools, and deployment workflows.
+
+## ✨ Features
+
+### 🎯 Core Capabilities
+
+- **AI-Powered Generation** - Transform natural language prompts into working HTML/CSS/JS
+- **Live Preview** - Instant, interactive preview of generated code
+- **Code Editor** - Syntax-highlighted editor with HTML, CSS, and JS support
+- **Project Management** - Save, organize, and switch between multiple projects
+- **Offline Support** - Works even without internet (with local templates)
+
+### 🚀 Launch & Deployment
+
+- **Export Options**: Single HTML file or ZIP archive with README
+- **SEO Tools**: Meta tag injection (title, description, Open Graph, Twitter cards)
+- **Analytics**: Google Analytics/Ads tag injection
+- **Domain Management**: Track connected domains
+- **Promo Assets**: Generate OG meta snippets and README files
+
+### 💡 Smart Features
+
+- **Syntax Highlighting** - Custom tokenizer for HTML/CSS/JS with 13 token types
+- **Language Filters** - View all code, HTML only, CSS only, or JS only
+- **Line Numbers & Wrapping** - Professional editor experience
+- **Edit Mode** - Edit generated code directly in the browser
+- **Persistent Workspace** - Projects saved to localStorage
+
+### 🔐 Authentication (Optional)
+
+- **OAuth Providers**: Google, X (Twitter), GitHub (via Grok Auth Broker)
+- **Email/Password**: Built-in support (toggleable)
+- **Session Management**: Secure, encrypted sessions
+- **Preview Mode**: Works without auth for local development
+
+### 📱 Mobile-First
+
+- **Responsive Design** - Works on all screen sizes
+- **Touch-Friendly** - Optimized for mobile and tablet
+- **PWA Support** - Installable as a progressive web app
+- **Offline Mode** - Continue working without internet
+
+## 🚀 Quick Start
+
+### Try It Now
+
+1. **Deploy to Vercel** (recommended):
+   
+   [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FENZO7700%2Fcozy-ai-studio)
+
+2. **Or run locally**:
+   ```bash
+   git clone https://github.com/ENZO7700/cozy-ai-studio.git
+   cd cozy-ai-studio
+   npm install
+   npm run dev
+   ```
+   
+   Open `http://localhost:8080` in your browser.
+
+### First Steps
+
+1. **Write a Brief** - In the Studio, write a description like:
+   ```
+   Create a landing page for my photography portfolio with a grid of images
+   ```
+
+2. **Generate** - Click the Generate button
+
+3. **Preview** - See your app come to life in the live preview
+
+4. **Export** - Download as HTML or ZIP from the Launch page
+
+## 📁 Project Structure
+
+```
+src/
+├── components/
+│   ├── app/              # App shell, views, navigation
+│   ├── studio/           # Studio, code viewer, preview
+│   └── ui/               # Reusable UI components
+├── lib/
+│   ├── ai/               # AI generation logic
+│   ├── auth/             # Authentication (Better Auth)
+│   ├── db/               # Database (PostgreSQL/PGLite)
+│   ├── preview/          # Preview system & templates
+│   ├── pwa/              # Progressive Web App
+│   └── studio/           # Studio utilities
+├── routes/
+│   ├── index.tsx         # Dashboard
+│   ├── studio.tsx        # AI Studio
+│   ├── launch.tsx        # Deployment tools
+│   ├── prompts.tsx       # Templates
+│   ├── blueprints.tsx    # Patterns
+│   └── settings.tsx      # Configuration
+├── stores/
+│   ├── studio-store.ts   # Studio state
+│   └── workspace-store.ts # Workspace state
+└── styles.css           # Global styles
+```
+
+## 🎨 Design Philosophy
+
+### Aesthetics
+
+- **Paper Theme** - Warm, natural paper background (#12110f)
+- **Ink Typography** - Clean, readable text
+- **Terracotta Accent** - Warm accent color (#c45c38)
+- **Minimalist** - No unnecessary chrome or distractions
+
+### Color Palette
+
+| Color | Hex | Usage |
+|-------|-----|-------|
+| Background | `#12110f` | Page background |
+| Surface | `#1c1b18` | Card/container background |
+| Card | `#24221e` | Card background |
+| Foreground | `#f4efe6` | Primary text |
+| Muted | `#a39a8c` | Secondary text |
+| Subtle | `#6f685c` | Tertiary text |
+| Border | `#35322c` | Borders |
+| Accent | `#c45c38` | Primary accent |
+| Accent FG | `#fff7f0` | Accent text |
+| Canvas | `#0c0b0a` | Editor/preview background |
+
+## 🛠️ Configuration
+
+### Environment Variables
+
+Create a `.env.local` file for local development:
 
 ```bash
-git clone https://github.com/ENZO7700/cozy-ai-studio.git
-cd cozy-ai-studio
-cp .env.example .env   # fill keys locally; never commit
-npm install
-npm run dev            # http://127.0.0.1:8080
+# Database (optional - uses PGLite by default)
+DATABASE_URL=postgresql://user:password@localhost:5432/cozy
+
+# Authentication (optional - uses preview client by default)
+VITE_AUTH_ENABLED=true
+GROK_AUTH_ISSUER=https://auth.grok.me
+GROK_AUTH_CLIENT_ID=your-client-id
+GROK_AUTH_CLIENT_SECRET=your-client-secret
+BETTER_AUTH_SECRET=your-32-byte-hex-secret
+
+# AI Generation (optional - uses local templates by default)
+XAI_API_KEY=your-xai-api-key
 ```
 
-`npm run build` runs Vite + client-boundary + bundle analyze/budget + migrate.
+See [DOCS/ENVIRONMENT.md](./DOCS/ENVIRONMENT.md) for complete configuration options.
 
-## Deploy (Vercel, personal account only)
+## 📚 Documentation
 
-Hobby project on **ENZO7700**, not a team/org.
+Comprehensive documentation is available in the [DOCS](./DOCS/) folder:
 
-1. Import `ENZO7700/cozy-ai-studio` in Vercel.
-2. Set env from `.env.example` (server keys only).
-3. Production URL: `https://cozy-ai-studio.vercel.app`.
+- [📖 Architecture](./DOCS/ARCHITECTURE.md) - Technical deep dive
+- [⚙️ Environment](./DOCS/ENVIRONMENT.md) - Configuration guide
+- [🚀 Deployment](./DOCS/DEPLOYMENT.md) - Deploy to Vercel, Netlify, etc.
+- [🔌 API](./DOCS/API.md) - Server functions & client API
+- [📜 Changelog](./DOCS/CHANGELOG.md) - Version history
+- [🤝 Contributing](./DOCS/CONTRIBUTING.md) - Contribution guidelines
 
-Optional custom domain: add `canvas.h4ck3d.me` in Vercel → Domains, then CNAME `canvas` → `cname.vercel-dns.com`.
+## 🎯 Use Cases
 
-Auto-deploy: GitHub Action + `VERCEL_TOKEN` secret on the personal repo. Rotate the token after sharing it.
+### For Designers
+- Rapid prototyping from text descriptions
+- Visualize concepts instantly
+- Export to share with clients
 
-## PWA
+### For Developers
+- Quick HTML/CSS/JS scaffolding
+- Code generation from specifications
+- Learning tool for front-end development
 
-Installable as **Cozy AI Studio**.
+### For Startups
+- Build landing pages in minutes
+- Create marketing sites without designers
+- Iterate quickly on ideas
 
-- Manifest: `/manifest.webmanifest` and `/__grok/manifest.webmanifest`
-- `name` / `short_name`: Cozy AI Studio / Cozy Studio
-- Theme / background: `#12110f`
-- Icons: 192, 512, maskable 512
-- Service worker `public/sw.js` precaches `/`, `/studio`, `/settings`, `/prompts`, `/blueprints`
-- Chromium install CTA only when `beforeinstallprompt` fires
-- Offline: app shell + last saved preview
+### For Educators
+- Teach web development concepts
+- Generate examples for students
+- Visual learning tool
 
-In Chrome: DevTools → Application → Manifest. Hard-refresh (`Ctrl/Cmd+Shift+R`) after deploy.
+## 🏆 Example Prompts
 
-## Client vs Server boundaries
+Try these prompts in the Studio:
 
-Browser code and Node code must not share a module graph. A leak of `node:module` / `createRequire` (or `pg`, PGLite, Kysely) into the client bundle greys out `/studio`.
-
-**Server-only (never import from a component, store, or `ssr: false` route)**
-
-- `*.server.ts` / `*.server.tsx`
-- `src/lib/db.ts` and anything under `src/lib/db/`
-- `src/lib/auth/server.ts`, `src/lib/auth/pglite-dialect.server.ts`
-- `src/lib/ai/generate-guard.server.ts`, `src/lib/ai/generate-abort.server.ts`
-- Node builtins (`node:fs`, `node:module`, …) and `pg` / `kysely` / `@electric-sql/pglite`
-
-**Client-safe**
-
-- UI under `src/components`, `src/routes`, `src/stores`
-- `src/lib/auth/client.ts`, `gates.tsx`, `providers.ts`
-- `src/lib/ai/generate.ts` **RPC stubs** (`createServerFn` calls). The handler body stays on the server.
-
-**How to call the server**
-
-```ts
-export const generatePreview = createServerFn({ method: "POST" })
-  .handler(async ({ data }) => {
-    const { gateGenerate } = await import("./generate-guard.server");
-    gateGenerate();
-    // ...
-  });
+### Basic
+```
+Landing page for a SaaS product
 ```
 
-Static `import` of a `*.server.ts` file from `StudioShell` / a route is forbidden. Dynamic `import()` inside the `createServerFn` handler is the allowed exception.
-
-**Enforcement (fail-fast, stubs are not the main defense)**
-
-1. Vite plugin `client-boundary` — client resolve of a server module throws with the import chain.
-2. `generateBundle` — client chunks must not contain `createRequire` / `node:module`.
-3. `npm run check:client-boundary` — static walk of the UI graph; `--dist` scans built assets.
-4. `npm run check:bundle` / `npm run check:budget` — forbidden modules + size caps; report at `dist/report.html`.
-
-Tooling packages `vite` / `rolldown` are stubbed so the bundler does not ship itself. `pg` and `node:module` are **not** stubbed away: they fail the build.
-
-## Scripts
-
-```bash
-npm run dev
-npm run build          # vite + boundary + analyze + bundle + budget + migrate
-npm run analyze
-npm run check:client-boundary
-npm run check:bundle
-npm run check:budget
-npm run typecheck
-npm test
-npm audit --audit-level=high
+### Detailed
+```
+Create a landing page for my meditation app with:
+- Hero section with call-to-action
+- Features section with 3 cards
+- Testimonials section
+- Pricing table with 3 tiers
+- Footer with links
+Use a calming color palette with blues and whites
 ```
 
-## Generate protection
+### Technical
+```
+Build a todo app with:
+- Add todo form
+- Todo list
+- Complete/incomplete toggle
+- Delete button
+- Local storage persistence
+```
 
-`generatePreview` is same-origin gated, optional `GENERATE_ACCESS_TOKEN` (httpOnly cookie, never in client JS), 10 req/min/IP and 100/day. Stop aborts the in-flight fetch (AbortController in the studio store + `request.signal` on the server). See `.env.example`.
+### Creative
+```
+A digital garden with:
+- Plant illustrations
+- Navigation between sections
+- Dark mode support
+- Responsive layout
+```
 
-## Preview sandbox
+## 🔧 Scripts
 
-The live iframe uses a `blob:` URL and `sandbox="allow-scripts allow-forms"` **without** `allow-same-origin`, so generated HTML cannot read parent `localStorage`.
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run typecheck` | TypeScript type checking |
+| `npm run lint` | ESLint code linting |
+| `npm run format` | Prettier code formatting |
+| `npm run test` | Run all tests |
+| `npm run db:migrate` | Run database migrations |
+
+## 🤝 Contributing
+
+We welcome contributions! Please read our [Contributing Guide](./DOCS/CONTRIBUTING.md) for:
+
+- Setting up your development environment
+- Understanding the codebase
+- Submitting changes
+- Code style guidelines
+- Testing requirements
+
+## 📄 License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Built with [TanStack Start](https://tanstack.com/start)
+- Authentication powered by [Better Auth](https://better-auth.com)
+- AI generation by [xAI Grok](https://console.x.ai)
+- Styling with [Tailwind CSS](https://tailwindcss.com)
+- Components from [Radix UI](https://www.radix-ui.com)
+- Icons from [Lucide](https://lucide.dev)
+
+## 📞 Support
+
+- **Documentation**: [DOCS](./DOCS/) folder
+- **Issues**: [GitHub Issues](https://github.com/ENZO7700/cozy-ai-studio/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/ENZO7700/cozy-ai-studio/discussions)
+- **Live Demo**: [https://cozy-ai-studio.vercel.app](https://cozy-ai-studio.vercel.app)
+
+---
+
+**Built with ❤️ and Cozy AI Studio**
+
+*Transform your ideas into beautiful, functional web apps in minutes.*

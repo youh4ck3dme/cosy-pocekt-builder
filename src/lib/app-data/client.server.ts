@@ -211,7 +211,9 @@ function tokenIdentityKey(token: string): string {
             .digest("base64url");
         }
       }
-    } catch {}
+    } catch {
+      // ignore parse failure and fall back to token hash
+    }
   }
   return createHash("sha256").update(token).digest("base64url");
 }

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BlueprintsRouteImport } from './routes/blueprints'
+import { Route as LaunchRouteImport } from './routes/launch'
 import { Route as PromptsRouteImport } from './routes/prompts'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as StudioRouteImport } from './routes/studio'
@@ -23,6 +24,11 @@ const IndexRoute = IndexRouteImport.update({
 const BlueprintsRoute = BlueprintsRouteImport.update({
   id: '/blueprints',
   path: '/blueprints',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LaunchRoute = LaunchRouteImport.update({
+  id: '/launch',
+  path: '/launch',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PromptsRoute = PromptsRouteImport.update({
@@ -44,6 +50,7 @@ const StudioRoute = StudioRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/blueprints': typeof BlueprintsRoute
+  '/launch': typeof LaunchRoute
   '/prompts': typeof PromptsRoute
   '/settings': typeof SettingsRoute
   '/studio': typeof StudioRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/blueprints': typeof BlueprintsRoute
+  '/launch': typeof LaunchRoute
   '/prompts': typeof PromptsRoute
   '/settings': typeof SettingsRoute
   '/studio': typeof StudioRoute
@@ -59,21 +67,31 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/blueprints': typeof BlueprintsRoute
+  '/launch': typeof LaunchRoute
   '/prompts': typeof PromptsRoute
   '/settings': typeof SettingsRoute
   '/studio': typeof StudioRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/blueprints' | '/prompts' | '/settings' | '/studio'
+  fullPaths:
+    '/' | '/blueprints' | '/launch' | '/prompts' | '/settings' | '/studio'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/blueprints' | '/prompts' | '/settings' | '/studio'
-  id: '__root__' | '/' | '/blueprints' | '/prompts' | '/settings' | '/studio'
+  to: '/' | '/blueprints' | '/launch' | '/prompts' | '/settings' | '/studio'
+  id:
+    | '__root__'
+    | '/'
+    | '/blueprints'
+    | '/launch'
+    | '/prompts'
+    | '/settings'
+    | '/studio'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BlueprintsRoute: typeof BlueprintsRoute
+  LaunchRoute: typeof LaunchRoute
   PromptsRoute: typeof PromptsRoute
   SettingsRoute: typeof SettingsRoute
   StudioRoute: typeof StudioRoute
@@ -93,6 +111,13 @@ declare module '@tanstack/react-router' {
       path: '/blueprints'
       fullPath: '/blueprints'
       preLoaderRoute: typeof BlueprintsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/launch': {
+      id: '/launch'
+      path: '/launch'
+      fullPath: '/launch'
+      preLoaderRoute: typeof LaunchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/prompts': {
@@ -122,6 +147,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BlueprintsRoute: BlueprintsRoute,
+  LaunchRoute: LaunchRoute,
   PromptsRoute: PromptsRoute,
   SettingsRoute: SettingsRoute,
   StudioRoute: StudioRoute,

@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { abortKind } from "@/lib/ai/abort-signal";
 import { injectCozyElements } from "@/lib/preview/cozy-elements";
 
-export type AiProvider = "mistral" | "grok";
+export type AiProvider = "grok";
 
 export type GenerateResult =
   | {
@@ -22,7 +22,6 @@ export type GenerateResult =
     };
 
 export type AiStatus = {
-  mistral: boolean;
   grok: boolean;
   locked: boolean;
 };
@@ -37,6 +36,10 @@ const CREATE_SYSTEM =
 const REVISE_SYSTEM =
   "You revise an existing self-contained HTML document. Apply the user's change request. Output ONLY a complete HTML file (doctype through </html>). No markdown. Keep warm paper background #f4efe6, ink text #1c1915, terracotta #c45c38. Vanilla JS only. Wrap localStorage in try/catch. No Tailwind, no CDNs, no external scripts, no Node APIs, no Vite. Preserve structure and working behavior unless the user asks to change it. Keep Cozy custom elements (<cozy-*>) if present; do not strip the data-cozy-elements script.";
 
+function grokKey(): string | null {
+  return (process.env.XAI_API_KEY ?? "").trim() || null;
+}
+
 function extractHtml(text: string): string | null {
   const fenced = text.match(/```html\s*([\s\S]*?)```/i);
   const raw = (fenced?.[1] ?? text).trim();
@@ -49,12 +52,6 @@ function extractHtml(text: string): string | null {
 
 function titleFromHtml(html: string): string {
   return html.match(/<title>([^<]+)<\/title>/i)?.[1]?.trim() || "Generated preview";
-}
-
-function mistralKey(): string | null {
-  const multi = (process.env.MISTRAL_API_KEYS ?? "").split(",")[0]?.trim();
-  const single = (process.env.MISTRAL_API_KEY ?? process.env.MISTRAL_KEY ?? "").trim();
-  return multi || single || null;
 }
 
 function formatProviderError(name: string, status: number, raw: string): string {
@@ -138,8 +135,7 @@ function pack(text: string, provider: AiProvider, model: string): GenerateResult
 
 export const getAiStatus = createServerFn({ method: "GET" }).handler(
   async (): Promise<AiStatus> => ({
-    mistral: Boolean(mistralKey()),
-    grok: Boolean(process.env.XAI_API_KEY),
+    grok: Boolean(grokKey()),
     locked: Boolean(
       (process.env.GENERATE_ACCESS_TOKEN ?? process.env.API_SECRET ?? "").trim(),
     ),
@@ -197,61 +193,30 @@ export const generatePreview = createServerFn({ method: "POST" })
     const prompt = revising
       ? `Change request:\n${data.prompt || "Tighten the layout."}\n\nCurrent HTML:\n${data.html}`
       : data.prompt || "A calm personal studio landing page.";
-    const errors: string[] = [];
 
-    const mk = mistralKey();
-    if (mk) {
-      const mistral = await complete({
-        url: "https://api.mistral.ai/v1/chat/completions",
-        key: mk,
-        model: "codestral-latest",
-        system,
-        prompt,
-        maxTokens: 4096,
-        signal,
-      });
-      if (mistral.ok) {
-        const packed = pack(mistral.text, "mistral", "codestral-latest");
-        if (packed.ok) return packed;
-        errors.push(packed.error);
-      } else if (mistral.aborted) {
-        logGenerateAbort(signal);
-        return { ok: false, error: "Cancelled", status: 499, aborted: true };
-      } else {
-        errors.push(mistral.error);
-      }
+    const xai = grokKey();
+    if (!xai) {
+      return { ok: false, error: "Grok API key (XAI_API_KEY) is not configured", status: 503 };
     }
 
-    if (signal.aborted) {
+    const grok = await complete({
+      url: "https://api.x.ai/v1/chat/completions",
+      key: xai,
+      model: "grok-4.5",
+      system,
+      prompt,
+      maxTokens: 4096,
+      signal,
+    });
+
+    if (grok.ok) {
+      const packed = pack(grok.text, "grok", "grok-4.5");
+      if (packed.ok) return packed;
+      return { ok: false, error: packed.error };
+    }
+    if (grok.aborted) {
       logGenerateAbort(signal);
       return { ok: false, error: "Cancelled", status: 499, aborted: true };
     }
-
-    const xai = process.env.XAI_API_KEY;
-    if (xai) {
-      const grok = await complete({
-        url: "https://api.x.ai/v1/chat/completions",
-        key: xai,
-        model: "grok-4.5",
-        system,
-        prompt,
-        maxTokens: 4096,
-        signal,
-      });
-      if (grok.ok) {
-        const packed = pack(grok.text, "grok", "grok-4.5");
-        if (packed.ok) return packed;
-        errors.push(packed.error);
-      } else if (grok.aborted) {
-        logGenerateAbort(signal);
-        return { ok: false, error: "Cancelled", status: 499, aborted: true };
-      } else {
-        errors.push(grok.error);
-      }
-    }
-
-    return {
-      ok: false,
-      error: errors[0] || "No AI provider is configured",
-    };
+    return { ok: false, error: grok.error };
   });

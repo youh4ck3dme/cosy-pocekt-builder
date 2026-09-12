@@ -33,9 +33,12 @@ export function parseSmokeArgs(argv, env = {}) {
       positional.push(arg);
     }
   }
+  const defaultPng = process.platform === "win32"
+    ? `${process.cwd().replace(/\\/g, "/")}/screenshots/app-builder-preview.png`
+    : "/workspace/screenshots/app-builder-preview.png";
   return {
     url: positional[0] || "http://127.0.0.1:8080/",
-    outPng: positional[1] || "/workspace/screenshots/app-builder-preview.png",
+    outPng: positional[1] || defaultPng,
     baseline,
   };
 }

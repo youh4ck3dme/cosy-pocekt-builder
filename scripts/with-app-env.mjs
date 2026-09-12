@@ -111,7 +111,17 @@ function main(argv) {
     process.exit(2);
   }
   const env = mergeAppEnv(readAppEnv(projectRoot()), process.env);
-  const child = spawn(command, args, { stdio: "inherit", env });
+  // Ensure node_modules/.bin is in PATH for spawned processes
+  const nodeModulesBin = join(projectRoot(), "node_modules", ".bin");
+  env.PATH = [nodeModulesBin, env.PATH || ""].filter(Boolean).join(
+    process.platform === "win32" ? ";" : ":"
+  );
+  const child = spawn(command, args, {
+    stdio: "inherit",
+    env,
+    shell: true,
+    cwd: projectRoot(),
+  });
   // The dev server is long-running and is stopped by signalling this wrapper.
   for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
     process.on(signal, () => child.kill(signal));

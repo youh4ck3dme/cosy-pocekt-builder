@@ -1,12 +1,10 @@
-import { useEffect, useRef, useState } from "react";
-import { Code2, Eye, MessageSquare } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { CodeViewer } from "@/components/studio/CodeViewer";
 import { ExportActions } from "@/components/studio/ExportActions";
 import { GenerateButton } from "@/components/studio/GenerateButton";
 import { LivePreview } from "@/components/studio/LivePreview";
 import { StopButton } from "@/components/studio/StopButton";
 import { ThinkingStatus } from "@/components/studio/ThinkingStatus";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { isAbortError } from "@/lib/ai/abort-signal";
 import { generatePreview, getAiStatus, type AiStatus } from "@/lib/ai/generate";
 import { localPreviewHtml } from "@/lib/preview/local-templates";
@@ -16,16 +14,17 @@ import {
   readOfflinePreview,
 } from "@/lib/pwa/offline";
 import { useOnline } from "@/lib/pwa/use-online";
+import { cn } from "@/lib/utils";
 import { useStudioStore } from "@/stores/studio-store";
 import { useWorkspaceStore } from "@/stores/workspace-store";
+import { Code2, Eye, MessageSquare } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 type MobilePanel = "chat" | "code" | "preview";
 
 function providerLabel(status: AiStatus | null, used: string | null): string {
-  if (used === "mistral") return "Mistral";
   if (used === "grok") return "Grok";
   if (used === "local") return "Local";
-  if (status?.mistral) return "Mistral";
   if (status?.grok) return "Grok";
   return "Local";
 }
@@ -57,6 +56,7 @@ export function StudioShell() {
   const title = useStudioStore((s) => s.title);
   const provider = useStudioStore((s) => s.provider);
   const loadPreview = useStudioStore((s) => s.loadPreview);
+  const updateCode = useStudioStore((s) => s.updateCode);
   const projects = useWorkspaceStore((s) => s.projects);
   const currentProjectId = useWorkspaceStore((s) => s.currentProjectId);
   const setCurrentProjectId = useWorkspaceStore((s) => s.setCurrentProjectId);
@@ -170,9 +170,7 @@ export function StudioShell() {
           html: remote.html,
           assistantText: revising
             ? "Updated the board."
-            : remote.provider === "mistral"
-              ? "Preview generated with Mistral Codestral."
-              : "Preview generated with Grok.",
+            : "Preview generated with Grok.",
           provider: remote.provider,
         });
         upsertProject({
@@ -252,6 +250,18 @@ export function StudioShell() {
   }
 
   const sourceText = code || html;
+
+  function handleCodeUpdate(newCode: string) {
+    updateCode(newCode);
+    if (currentProjectId) {
+      upsertProject({
+        id: currentProjectId,
+        title: title || "Project",
+        html: newCode,
+        code: newCode,
+      });
+    }
+  }
 
   return (
     <div
@@ -343,7 +353,7 @@ export function StudioShell() {
                 <div
                   key={m.id}
                   className={cn(
-                    "break-words rounded-xl px-3 py-2 text-sm leading-relaxed",
+                    "wrap-break-word rounded-xl px-3 py-2 text-sm leading-relaxed",
                     m.role === "user"
                       ? "ml-6 bg-accent text-accent-fg"
                       : "mr-6 border border-border bg-card text-fg",
@@ -422,16 +432,14 @@ export function StudioShell() {
           className={cn(
             "min-h-0 min-w-0 flex-col border-r border-border bg-canvas",
             panel === "code" ? "flex min-h-0 flex-1" : "hidden",
-            showSource ? "lg:flex lg:w-[42%] lg:shrink-0 lg:flex-none" : "lg:hidden",
+            showSource ? "lg:flex lg:w-[45%] lg:shrink-0 lg:flex-none" : "lg:hidden",
           )}
         >
-          <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border pl-3 pr-1">
-            <p className="min-w-0 truncate text-xs uppercase tracking-widest text-subtle">Source</p>
-            <ExportActions html={sourceText} title={title} />
-          </div>
-          <pre className="min-h-0 flex-1 overflow-auto p-4 font-mono text-xs leading-relaxed text-muted">
-            {code || "Source appears after a generate."}
-          </pre>
+          <CodeViewer
+            code={sourceText}
+            title={title}
+            onUpdateCode={handleCodeUpdate}
+          />
         </section>
 
         <section

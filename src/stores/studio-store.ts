@@ -8,7 +8,7 @@ export type StudioMessage = {
   text: string;
 };
 
-export type StudioProvider = "mistral" | "grok" | "local" | null;
+export type StudioProvider = "grok" | "local" | null;
 
 type StudioState = {
   brief: string;
@@ -33,6 +33,7 @@ type StudioState = {
   setError: (error: string | null) => void;
   hydratePreview: (opts: { title: string; code: string; html: string }) => void;
   loadPreview: (opts: { title: string; code: string; html: string }) => void;
+  updateCode: (code: string) => void;
   reset: () => void;
   pushAssistant: (text: string) => void;
   beginGenerate: () => AbortSignal;
@@ -68,6 +69,7 @@ export const useStudioStore = create<StudioState>()(
         set((s) => (s.html ? s : { title, code, html })),
       loadPreview: ({ title, code, html }) =>
         set({ title, code, html, error: null }),
+      updateCode: (code) => set({ code, html: code }),
       reset: () => {
         get().abortController?.abort();
         set(empty);

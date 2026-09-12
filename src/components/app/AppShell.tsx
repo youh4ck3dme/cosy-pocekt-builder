@@ -5,6 +5,7 @@ import {
   FolderOpen,
   LayoutDashboard,
   Menu,
+  Rocket,
   ScrollText,
   Settings,
   X,
@@ -14,9 +15,10 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/studio", label: "Projekty", icon: FolderOpen },
-  { to: "/settings", label: "Nastavenie", icon: Settings },
   { to: "/prompts", label: "Promty", icon: FileText },
   { to: "/blueprints", label: "Blueprinty", icon: ScrollText },
+  { to: "/launch", label: "Launch", icon: Rocket },
+  { to: "/settings", label: "Nastavenie", icon: Settings },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
