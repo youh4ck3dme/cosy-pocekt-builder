@@ -52,10 +52,9 @@ export async function validateWordPressUrl(value: string): Promise<URL> {
   if (!answers.length || answers.some(({ address }) => blockedIp(address))) {
     throw new Error("Adresa smeruje do nepovolenej internej siete.");
   }
-  url.hash = "";
-  url.username = "";
-  url.password = "";
-  return url;
+  const sanitized = new URL(`${url.protocol}//${url.host}${url.pathname}${url.search}`);
+  sanitized.hash = "";
+  return sanitized;
 }
 
 export function redactWordPressError(error: unknown): string {
