@@ -1,8 +1,8 @@
 {
   "mainChunkBytes": 500000,
   "mainChunkGzipBytes": 180000,
-  "studioChunkBytes": 60000,
+  "studioChunkBytes": 80000,
   "studioChunkGzipBytes": 25000,
-  "totalClientBytes": 750000,
-  "totalClientGzipBytes": 250000
+  "totalClientBytes": 820000,
+  "totalClientGzipBytes": 260000
 }

@@ -1,0 +1,16 @@
+.git
+.grok
+.vercel
+.output
+.tanstack
+dist
+node_modules
+screenshots
+attachments
+DOCS
+data
+*.log
+.env
+.env.*
+!.env.example
+bundle-budget.json

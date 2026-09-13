@@ -8,11 +8,7 @@ import { Button } from "@/components/ui/button";
 import { isAbortError } from "@/lib/ai/abort-signal";
 import { generatePreview, getAiStatus, type AiStatus } from "@/lib/ai/generate";
 import { localPreviewHtml } from "@/lib/preview/local-templates";
-import {
-  clearOfflinePreview,
-  persistOfflinePreview,
-  readOfflinePreview,
-} from "@/lib/pwa/offline";
+import { clearOfflinePreview, persistOfflinePreview, readOfflinePreview } from "@/lib/pwa/offline";
 import { useOnline } from "@/lib/pwa/use-online";
 import { cn } from "@/lib/utils";
 import { useStudioStore } from "@/stores/studio-store";
@@ -23,9 +19,13 @@ import { useEffect, useRef, useState } from "react";
 type MobilePanel = "chat" | "code" | "preview";
 
 function providerLabel(status: AiStatus | null, used: string | null): string {
-  if (used === "grok") return "Grok";
+  if (used === "mistral") return "Mistral";
+  if (used === "gemini") return "Gemini";
+  if (used === "openai") return "OpenAI";
   if (used === "local") return "Local";
-  if (status?.grok) return "Grok";
+  if (status?.mistral) return "Mistral";
+  if (status?.gemini) return "Gemini";
+  if (status?.openai) return "OpenAI";
   return "Local";
 }
 
@@ -168,9 +168,7 @@ export function StudioShell() {
           title: remote.title,
           code: remote.code,
           html: remote.html,
-          assistantText: revising
-            ? "Updated the board."
-            : "Preview generated with Grok.",
+          assistantText: revising ? "Updated the board." : "Preview generated with Mistral.",
           provider: remote.provider,
         });
         upsertProject({
@@ -192,9 +190,7 @@ export function StudioShell() {
           remote.status === 429 && remote.retryAfter
             ? `${remote.error}. Skús znova o ${remote.retryAfter}s.`
             : remote.error;
-        pushAssistant(
-          revising ? `${remote.error}. Preview unchanged.` : remote.error,
-        );
+        pushAssistant(revising ? `${remote.error}. Preview unchanged.` : remote.error);
         setError(detail);
         finishGenerate();
         return;
@@ -264,10 +260,7 @@ export function StudioShell() {
   }
 
   return (
-    <div
-      className="flex h-full flex-col bg-bg text-fg"
-      data-studio-shell
-    >
+    <div className="flex h-full flex-col bg-bg text-fg" data-studio-shell>
       <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-surface px-3 sm:px-4">
         <div className="flex min-w-0 items-center gap-3">
           <p className="font-serif text-base tracking-tight">Projekty</p>
@@ -311,8 +304,8 @@ export function StudioShell() {
             {messages.length === 0 && !running ? (
               <div className="space-y-3">
                 <p className="text-sm leading-relaxed text-muted">
-                  Napíš brief. Žiadne predpripravené šablóny — plocha vznikne
-                  z tvojho textu, promptu alebo blueprintu.
+                  Napíš brief. Žiadne predpripravené šablóny — plocha vznikne z tvojho textu,
+                  promptu alebo blueprintu.
                 </p>
                 {!online ? (
                   <p className="text-xs leading-relaxed text-subtle">
@@ -365,10 +358,7 @@ export function StudioShell() {
             )}
             {running ? (
               <div ref={thinkRef}>
-                <ThinkingStatus
-                  brief={`${title} ${brief}`}
-                  mode={html ? "revise" : "create"}
-                />
+                <ThinkingStatus brief={`${title} ${brief}`} mode={html ? "revise" : "create"} />
               </div>
             ) : null}
             {!running && currentProjectId && html ? (
@@ -410,20 +400,14 @@ export function StudioShell() {
                 }
               }}
               placeholder={
-                html
-                  ? "Make the columns narrower…"
-                  : "Landing pre ateliér, cenník a kontakt…"
+                html ? "Make the columns narrower…" : "Landing pre ateliér, cenník a kontakt…"
               }
               className="min-h-20 w-full resize-none rounded-xl border border-border bg-card px-3 py-2.5 text-sm leading-relaxed text-fg placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
             />
             {running ? (
               <StopButton />
             ) : (
-              <GenerateButton
-                disabled={!brief.trim()}
-                hasHtml={Boolean(html)}
-                online={online}
-              />
+              <GenerateButton disabled={!brief.trim()} hasHtml={Boolean(html)} online={online} />
             )}
           </form>
         </section>
@@ -435,11 +419,7 @@ export function StudioShell() {
             showSource ? "lg:flex lg:w-[45%] lg:shrink-0 lg:flex-none" : "lg:hidden",
           )}
         >
-          <CodeViewer
-            code={sourceText}
-            title={title}
-            onUpdateCode={handleCodeUpdate}
-          />
+          <CodeViewer code={sourceText} title={title} onUpdateCode={handleCodeUpdate} />
         </section>
 
         <section

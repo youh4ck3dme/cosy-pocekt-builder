@@ -277,9 +277,12 @@ test("baselineComparison fails closed on malformed or wrong-shape baselines", ()
 });
 
 test("parseSmokeArgs defaults", () => {
+  const defaultPng = process.platform === "win32"
+    ? `${process.cwd().replace(/\\/g, "/")}/screenshots/app-builder-preview.png`
+    : "/workspace/screenshots/app-builder-preview.png";
   assert.deepEqual(parseSmokeArgs([], {}), {
     url: "http://127.0.0.1:8080/",
-    outPng: "/workspace/screenshots/app-builder-preview.png",
+    outPng: defaultPng,
     baseline: "",
   });
 });

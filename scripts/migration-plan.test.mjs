@@ -56,9 +56,9 @@ test("non-.sql entries are dropped (readdir also yields the auth/ directory)", (
   assert.deepEqual(pendingMigrations(["auth", "README.md"], []), []);
 });
 
-test("the auth schema ships outside the globbed directory", () => {
+test("the auth source schema stays available outside the globbed directory", () => {
   const migrationsDir = join(projectRoot(), "migrations");
-  assert.deepEqual(pendingMigrations(readdirSync(migrationsDir), []), []);
+  assert.ok(pendingMigrations(readdirSync(migrationsDir), []).some((item) => item.name === AUTH_MIGRATION));
   assert.ok(readdirSync(join(migrationsDir, "auth")).includes("0001_auth.sql"));
 });
 
@@ -87,4 +87,10 @@ test("the copy check reads both files and catches an edit", () => {
   writeFileSync(join(root, "migrations", AUTH_MIGRATION), "create table t (x int);\n");
   const drifted = authSchemaCopy(root);
   assert.notEqual(drifted.copy, drifted.source);
+});
+
+test("deploy migrator fails closed when a configured database is unreachable", () => {
+  const source = readFileSync(join(projectRoot(), "scripts", "migrate.mjs"), "utf8");
+  assert.doesNotMatch(source, /database unreachable.+skipping so publish can finish/i);
+  assert.doesNotMatch(source, /process\.exit\(0\)[\s\S]*database unreachable/i);
 });

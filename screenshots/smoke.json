@@ -1,0 +1,38 @@
+{
+  "url": "http://127.0.0.1:8080",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "Dashboard — Cozy",
+      "hasCanvas": false,
+      "bodyTextLen": 265,
+      "bodyTextHash": "66bca1387f629fb2ba6435c14a90a78235c790cf0cb22f8899426eef56676679",
+      "bodyTextPrefix": "Cozy Dashboard Projekty Promty Blueprinty Launch Nastavenie PREH",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "C:\\dev\\Active\\pocket-builder-cosy\\screenshots\\smoke.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "Dashboard — Cozy",
+      "hasCanvas": false,
+      "bodyTextLen": 270,
+      "bodyTextHash": "159da11bbccef522e18cd96ba55a079897085cc51d020597f5ed891aada89843",
+      "bodyTextPrefix": "Cozy Dashboard Projekty Promty Blueprinty Launch Nastavenie Cozy",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "C:\\dev\\Active\\pocket-builder-cosy\\screenshots\\smoke-mobile.png"
+    }
+  },
+  "brandWarnings": [
+    "BRAND NOTE: no custom public/og.jpg — the platform will serve the og.grok.me placeholder. Custom cards are the default for games of every kind (DOM board/word games included), whimsical apps, creative tools, and brand-forward pages — only plain utilities (converters, CRUD trackers, admin dashboards) keep the placeholder. If this app is not a plain utility, finish the brand-asset pass per \\workspace\\.grok\\skills\\og\\SKILL.md."
+  ],
+  "authWarnings": [],
+  "verdictFile": "C:\\dev\\Active\\pocket-builder-cosy\\screenshots\\smoke.json"
+}

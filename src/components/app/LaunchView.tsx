@@ -15,12 +15,16 @@ import {
   ChevronUp,
   Key,
   AlertCircle,
+  ShieldCheck,
+  ListChecks,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useStudioStore } from "@/stores/studio-store";
 import { useWorkspaceStore } from "@/stores/workspace-store";
 import { getAiStatus, type AiStatus } from "@/lib/ai/generate";
+import { createClientApprovalLink, type ClientApprovalDraft } from "@/lib/client-approvals";
+import { auditGeneratedHtml } from "@/lib/audit/static-audit";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -440,8 +444,8 @@ function ProductionResourcesCard() {
 
   const rows = [
     {
-      label: "XAI_API_KEY (Grok)",
-      configured: status?.grok ?? false,
+      label: "MISTRAL_API_KEY",
+      configured: status?.mistral ?? false,
     },
     {
       label: "Access Token",
@@ -454,7 +458,7 @@ function ProductionResourcesCard() {
       id="launch-resources"
       icon={Server}
       title="Production Resources"
-      description="Stav API kľúčov a prístupových tokenov na serveri."
+      description="Stav API kľúča a prístupových tokenov na serveri."
     >
       <div className="space-y-2">
         {rows.map((row) => (
@@ -480,7 +484,7 @@ function ProductionResourcesCard() {
           </div>
         ))}
         <p className="pt-1 text-xs leading-relaxed text-muted">
-          Kľúče sa nastavujú cez env premenné na Vercel alebo v `.env.local` pri vývoji.
+          API kľúč sa nastavuje cez env premennú MISTRAL_API_KEY na Vercel alebo v `.env.local` pri vývoji.
         </p>
       </div>
     </LaunchCard>
@@ -554,6 +558,134 @@ ${ogHtml}
             README.md
           </Button>
         </div>
+      </div>
+    </LaunchCard>
+  );
+}
+
+function ClientApprovalCard() {
+  const html = useStudioStore((s) => s.html);
+  const code = useStudioStore((s) => s.code);
+  const title = useStudioStore((s) => s.title);
+  const [clientLabel, setClientLabel] = useState("");
+  const [days, setDays] = useState(7);
+  const [draft, setDraft] = useState<ClientApprovalDraft | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function createLink() {
+    if (!html.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const next = await createClientApprovalLink({
+        data: { title, html, code: code || html, clientLabel, days },
+      });
+      setDraft(next);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Link sa nepodarilo vytvorit.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const absoluteUrl =
+    draft && typeof window !== "undefined" ? new URL(draft.url, window.location.origin).toString() : "";
+
+  return (
+    <LaunchCard
+      id="launch-client-approval"
+      icon={ShieldCheck}
+      title="Klientske schvalenie"
+      description="Vytvor presnu verziu s expirovanym linkom a 6-miestnym PINom."
+      disabled={!html}
+    >
+      <div className="space-y-3">
+        <label className="block text-xs uppercase tracking-widest text-subtle" htmlFor="client-label">
+          Klient alebo projekt
+        </label>
+        <input
+          id="client-label"
+          value={clientLabel}
+          onChange={(event) => setClientLabel(event.target.value)}
+          className="h-11 w-full rounded-xl border border-border bg-card px-3 text-sm text-fg placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+          placeholder="Nazov klienta"
+        />
+        <label className="block text-xs uppercase tracking-widest text-subtle" htmlFor="approval-days">
+          Platnost linku
+        </label>
+        <select
+          id="approval-days"
+          value={days}
+          onChange={(event) => setDays(Number(event.target.value))}
+          className="h-11 w-full rounded-xl border border-border bg-card px-3 text-sm text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+        >
+          <option value={3}>3 dni</option>
+          <option value={7}>7 dni</option>
+          <option value={14}>14 dni</option>
+          <option value={30}>30 dni</option>
+        </select>
+        <Button size="sm" onClick={() => void createLink()} disabled={busy || !html.trim()}>
+          <ShieldCheck className="size-3.5" />
+          {busy ? "Vytvaram..." : "Vytvorit review link"}
+        </Button>
+        {error ? <p className="text-xs text-muted">{error}</p> : null}
+        {draft ? (
+          <div className="space-y-2 rounded-xl border border-border bg-card p-3">
+            <p className="text-xs text-subtle">Poslite klientovi link a PIN oddelene.</p>
+            <p className="break-all font-mono text-xs text-fg">{absoluteUrl}</p>
+            <p className="font-mono text-lg tracking-widest text-accent">{draft.pin}</p>
+            <p className="text-xs text-muted">
+              Plati do {new Date(draft.expiresAt).toLocaleString("sk-SK")}.
+            </p>
+          </div>
+        ) : null}
+      </div>
+    </LaunchCard>
+  );
+}
+
+function QualityGateCard() {
+  const html = useStudioStore((s) => s.html);
+  const report = auditGeneratedHtml(html);
+  const tone =
+    report.status === "pass"
+      ? "text-accent"
+      : report.status === "warning"
+        ? "text-yellow-300"
+        : "text-muted";
+
+  return (
+    <LaunchCard
+      id="launch-quality-gate"
+      icon={ListChecks}
+      title="Quality gate"
+      description="Deterministicka kontrola exportu pred klientom alebo publikovanim."
+      disabled={!html}
+    >
+      <div className="space-y-3">
+        <div className="rounded-xl border border-border bg-card px-4 py-3">
+          <p className="text-xs text-subtle">Stav verzie</p>
+          <p className={`mt-1 text-2xl font-semibold tabular-nums ${tone}`}>{report.score}/100</p>
+          <p className="text-xs text-muted">
+            {report.status === "pass"
+              ? "Zakladne kontroly presli."
+              : report.status === "warning"
+                ? "Verzia je pouzitelna, ale ma upozornenia."
+                : "Pred odoslanim klientovi opravte zlyhania."}
+          </p>
+        </div>
+        <ul className="space-y-2">
+          {report.findings.map((item) => (
+            <li key={item.id} className="rounded-xl border border-border bg-card px-3 py-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium text-fg">{item.label}</p>
+                <span className="text-xs uppercase tracking-widest text-subtle">{item.severity}</span>
+              </div>
+              <p className="mt-1 text-xs leading-relaxed text-muted">{item.detail}</p>
+            </li>
+          ))}
+        </ul>
       </div>
     </LaunchCard>
   );
@@ -640,6 +772,8 @@ export function LaunchView() {
           <ConnectedDomainsCard />
           <SeoSocialCard />
           <GoogleAdsCard />
+          <QualityGateCard />
+          <ClientApprovalCard />
           <ProductionResourcesCard />
           <PromoAssetsCard />
         </div>

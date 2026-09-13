@@ -1,36 +1,5 @@
 {
+  "ok": false,
   "url": "http://127.0.0.1:8080/",
-  "viewports": {
-    "desktop": {
-      "width": 1280,
-      "height": 800,
-      "status": 200,
-      "title": "Dashboard — Cozy",
-      "hasCanvas": false,
-      "bodyTextLen": 258,
-      "bodyTextHash": "f09121b133d4435e18e80ef6fc4d232233877d95b4bee787f002ca175d48f2d8",
-      "bodyTextPrefix": "Cozy Dashboard Projekty Nastavenie Promty Blueprinty PREHĽAD Das",
-      "horizontalOverflow": false,
-      "consoleErrors": [],
-      "pageErrors": [],
-      "screenshot": "/workspace/screenshots/app-builder-preview.png"
-    },
-    "mobile": {
-      "width": 390,
-      "height": 844,
-      "status": 200,
-      "title": "Dashboard — Cozy",
-      "hasCanvas": false,
-      "bodyTextLen": 263,
-      "bodyTextHash": "ff69d72cb9b021d0e6ba0198788f87e8bc4ee3d01009a3d697ffe97d51510720",
-      "bodyTextPrefix": "Cozy Dashboard Projekty Nastavenie Promty Blueprinty Cozy PREHĽA",
-      "horizontalOverflow": false,
-      "consoleErrors": [],
-      "pageErrors": [],
-      "screenshot": "/workspace/screenshots/app-builder-preview-mobile.png"
-    }
-  },
-  "brandWarnings": [],
-  "authWarnings": [],
-  "verdictFile": "/workspace/screenshots/app-builder-preview.json"
+  "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:8080/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:8080/\", waiting until \"domcontentloaded\"\u001b[22m\n"
 }

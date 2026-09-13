@@ -1,6 +1,6 @@
+import { GENERATE_TIMEOUT_MS, withTimeout } from "../lib/ai/abort-signal.ts";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { GENERATE_TIMEOUT_MS, withTimeout } from "@/lib/ai/abort-signal";
 
 export type StudioMessage = {
   id: string;
@@ -8,7 +8,7 @@ export type StudioMessage = {
   text: string;
 };
 
-export type StudioProvider = "grok" | "local" | null;
+export type StudioProvider = "mistral" | "gemini" | "openai" | "grok" | "local" | null;
 
 type StudioState = {
   brief: string;
@@ -65,10 +65,8 @@ export const useStudioStore = create<StudioState>()(
       setBrief: (brief) => set({ brief }),
       setRunning: (running) => set({ running }),
       setError: (error) => set({ error }),
-      hydratePreview: ({ title, code, html }) =>
-        set((s) => (s.html ? s : { title, code, html })),
-      loadPreview: ({ title, code, html }) =>
-        set({ title, code, html, error: null }),
+      hydratePreview: ({ title, code, html }) => set((s) => (s.html ? s : { title, code, html })),
+      loadPreview: ({ title, code, html }) => set({ title, code, html, error: null }),
       updateCode: (code) => set({ code, html: code }),
       reset: () => {
         get().abortController?.abort();
@@ -76,10 +74,7 @@ export const useStudioStore = create<StudioState>()(
       },
       pushUser: (text) =>
         set((s) => ({
-          messages: [
-            ...s.messages,
-            { id: crypto.randomUUID(), role: "user" as const, text },
-          ],
+          messages: [...s.messages, { id: crypto.randomUUID(), role: "user" as const, text }],
         })),
       pushAssistant: (text) =>
         set((s) => ({

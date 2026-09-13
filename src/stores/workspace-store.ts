@@ -35,6 +35,8 @@ type WorkspaceState = {
   addPrompt: (title: string, body: string) => void;
   removePrompt: (id: string) => void;
   addBlueprint: (title: string, html: string) => void;
+  renameBlueprint: (id: string, title: string) => void;
+  duplicateBlueprint: (id: string) => void;
   removeBlueprint: (id: string) => void;
   clearLocal: () => void;
 };
@@ -106,6 +108,34 @@ export const useWorkspaceStore = create<WorkspaceState>()(
             ...s.blueprints,
           ].slice(0, 40),
         }));
+      },
+      renameBlueprint: (id, title) => {
+        const nextTitle = title.trim();
+        if (!nextTitle) return;
+        set((s) => ({
+          blueprints: s.blueprints.map((blueprint) =>
+            blueprint.id === id
+              ? { ...blueprint, title: nextTitle, updatedAt: Date.now() }
+              : blueprint,
+          ),
+        }));
+      },
+      duplicateBlueprint: (id) => {
+        set((s) => {
+          const source = s.blueprints.find((blueprint) => blueprint.id === id);
+          if (!source) return s;
+          return {
+            blueprints: [
+              {
+                ...source,
+                id: nid(),
+                title: `${source.title} – kópia`,
+                updatedAt: Date.now(),
+              },
+              ...s.blueprints,
+            ].slice(0, 40),
+          };
+        });
       },
       removeBlueprint: (id) =>
         set((s) => ({ blueprints: s.blueprints.filter((p) => p.id !== id) })),

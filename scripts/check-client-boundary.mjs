@@ -21,7 +21,11 @@ const SERVER_FILE_RE = /\.server(?:\.(?:t|j)sx?)?$/;
 const SERVER_PATH_HINTS = [
   "/src/lib/db.ts",
   "/src/lib/db/",
+  "/src/lib/db",
+  "@/lib/db",
   "/src/lib/auth/server.ts",
+  "/src/lib/auth/server",
+  "@/lib/auth/server",
   "/src/lib/auth/pglite-dialect",
   "/src/lib/app-data/server-only",
   "/src/lib/app-data/client.server",
@@ -58,6 +62,9 @@ const FORBIDDEN_BUILTINS = new Set([
 const DUAL_FNS = new Set([
   join(SRC, "lib/ai/generate.ts"),
   join(SRC, "lib/auth/middleware.ts"),
+  join(SRC, "lib/client-approvals.ts"),
+  join(SRC, "lib/wordpress.ts"),
+  join(SRC, "routes/api/auth/$.ts"),
 ]);
 const LEAK_RE =
   /createRequire|node:module|from["']module["']|from["']pg["']|@electric-sql\/pglite/;
@@ -103,14 +110,14 @@ function resolveImport(fromFile, spec) {
 
 function withExt(base) {
   const candidates = [
-    base,
     `${base}.ts`,
     `${base}.tsx`,
     `${base}.js`,
     join(base, "index.ts"),
     join(base, "index.tsx"),
+    base,
   ];
-  return candidates.find((c) => existsSync(c)) ?? null;
+  return candidates.find((c) => existsSync(c) && statSync(c).isFile()) ?? null;
 }
 
 function stripComments(source) {
@@ -155,7 +162,7 @@ export function scanSrc(root = SRC) {
     const file = queue.pop();
     if (!file || visited.has(file)) continue;
     visited.add(file);
-    if (!existsSync(file)) continue;
+    if (!existsSync(file) || !statSync(file).isFile()) continue;
     const source = readFileSync(file, "utf8");
     const dual = DUAL_FNS.has(file);
     for (const imp of parseImports(source)) {

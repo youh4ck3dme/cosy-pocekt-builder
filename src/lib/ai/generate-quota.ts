@@ -4,7 +4,14 @@ export type QuotaBucket = {
   dayCount: number;
 };
 
-export type QuotaStore = Map<string, QuotaBucket>;
+export type QuotaStore = {
+  get: (key: string) => Promise<QuotaBucket | undefined>;
+  set: (key: string, value: QuotaBucket) => Promise<void>;
+  clear: () => void;
+  withLock?: <T>(key: string, run: () => Promise<T>) => Promise<T>;
+};
+
+export type InMemoryQuotaStore = Map<string, QuotaBucket>;
 
 export type QuotaOk = {
   ok: true;
@@ -28,18 +35,21 @@ export function secondsUntilNextUtcDay(nowMs: number): number {
   return Math.max(1, Math.ceil((next - nowMs) / 1000));
 }
 
-export function consumeQuota(
+export async function consumeQuota(
   store: QuotaStore,
   ip: string,
   nowMs: number,
   perMinute: number,
   perDay: number,
-): QuotaOk | QuotaDenied {
+): Promise<QuotaOk | QuotaDenied> {
+  if (store.withLock) {
+    return store.withLock(ip, () => consumeQuota({ ...store, withLock: undefined }, ip, nowMs, perMinute, perDay));
+  }
+
   const windowMs = 60_000;
-  let bucket = store.get(ip);
+  let bucket = await store.get(ip);
   if (!bucket) {
     bucket = { hits: [], day: utcDayKey(nowMs), dayCount: 0 };
-    store.set(ip, bucket);
   }
 
   bucket.hits = bucket.hits.filter((t) => nowMs - t < windowMs);
@@ -61,9 +71,42 @@ export function consumeQuota(
 
   bucket.hits.push(nowMs);
   bucket.dayCount += 1;
+  await store.set(ip, bucket);
   return {
     ok: true,
     remainingMinute: perMinute - bucket.hits.length,
     remainingDay: perDay - bucket.dayCount,
+  };
+}
+
+// Create an async wrapper for in-memory store to maintain backward compatibility
+export function createInMemoryQuotaStore(): QuotaStore {
+  const memoryStore: InMemoryQuotaStore = new Map();
+  const locks = new Map<string, Promise<void>>();
+
+  async function withLock<T>(key: string, run: () => Promise<T>): Promise<T> {
+    const previous = locks.get(key) ?? Promise.resolve();
+    let release!: () => void;
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    locks.set(key, previous.then(() => current, () => current));
+    await previous.catch(() => undefined);
+    try {
+      return await run();
+    } finally {
+      release();
+      if (locks.get(key) === current) locks.delete(key);
+    }
+  }
+  
+  return {
+    get: async (key: string) => memoryStore.get(key),
+    set: async (key: string, value: QuotaBucket) => { memoryStore.set(key, value); },
+    clear: () => {
+      memoryStore.clear();
+      locks.clear();
+    },
+    withLock,
   };
 }
