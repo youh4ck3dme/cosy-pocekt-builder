@@ -2,9 +2,10 @@
 /**
  * Deploy-time database migrator (node-postgres, `pg`).
  *
- * Runs during `npm run build` — on every Vercel deploy — applying pending files
- * in ../migrations to DATABASE_URL. Each file is applied in one transaction and
- * recorded in a `_migrations` table, so it runs once and is safe to re-run.
+ * Runs explicitly at runtime (for example through `npm run start:prod`),
+ * applying pending files in ../migrations to DATABASE_URL. Each file is applied
+ * in one transaction and recorded in a `_migrations` table, so it runs once
+ * and is safe to re-run.
  *
  * The read is non-recursive, so the opt-in auth schema under migrations/auth/
  * is not applied to an app that never asked for sign-in.

@@ -255,8 +255,8 @@ VALIDATION_STRATEGY=auto
 BROWSER_POOL_SIZE=2
 VALIDATION_MAX_HTML_SIZE=500000
 
-# AI Provider (REPLACE WITH ACTUAL KEY)
-MISTRAL_API_KEY=your_mistral_api_key_here
+# AI Provider (set this in the private .env file)
+MISTRAL_API_KEY=
 
 # Domain (REPLACE WITH YOUR DOMAIN)
 DOMAIN=yourdomain.com
