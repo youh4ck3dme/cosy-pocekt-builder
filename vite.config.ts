@@ -268,8 +268,8 @@ export default defineConfig(({ command, isPreview }) => ({
     allowedHosts: ["cozy.h4ck3d.me"],
   },
   preview: {
-    host: "127.0.0.1",
-    port: 8081,
+    host: process.env.PREVIEW_HOST ?? "127.0.0.1",
+    port: Number(process.env.PREVIEW_PORT ?? process.env.PORT ?? 8081),
     strictPort: true,
   },
   resolve: { tsconfigPaths: true },

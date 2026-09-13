@@ -41,8 +41,11 @@ ENV PORT=8080
 ENV HOST=0.0.0.0
 
 # Health check - uses /api/validationHealth endpoint
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=5 \
     CMD curl -f http://localhost:8080/api/validationHealth || exit 1
 
-# Start command
-CMD ["npm", "run", "dev"]
+# Build the application. Database migrations run at container startup, when runtime env vars are available.
+RUN npm run build:prod
+
+# Start command - migrate the runtime database, then serve the built application
+CMD ["npm", "run", "start:prod"]

@@ -32,6 +32,7 @@ services:
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - WORDPRESS_ENCRYPTION_KEY=${WORDPRESS_ENCRYPTION_KEY}
       - PGLITE_DATA_DIR=${PGLITE_DATA_DIR:-/app/data/pglite}
+      - DATABASE_URL=${DATABASE_URL}
 
       # Optional: Redis for rate limiting
       - REDIS_URL=redis://redis:6379
@@ -43,6 +44,8 @@ services:
       - ./data:/app/data
     depends_on:
       redis:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/validationHealth"]
@@ -70,8 +73,25 @@ services:
     networks:
       - app-network
 
+  postgres:
+    image: postgres:16-alpine
+    container_name: cosy-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cosy}
+      POSTGRES_USER: ${POSTGRES_USER:-cosy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cosy} -d ${POSTGRES_DB:-cosy}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app-network
+
   caddy:
-    profiles: ["caddy"]
     image: caddy:2-alpine
     container_name: cosy-caddy
     restart: unless-stopped
@@ -93,6 +113,7 @@ services:
 
 volumes:
   redis-data:
+  postgres-data:
   caddy-data:
   caddy-config:
 
