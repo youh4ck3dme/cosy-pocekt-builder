@@ -52,6 +52,18 @@
 
 ## 🚀 Quick Start
 
+### Repository remotes
+
+Use the remotes below when publishing changes:
+
+| Purpose | Repository | Command |
+|---|---|---|
+| Development | `ENZO7700/pocket-builder-cosy` | `git push enzo cosy-seed` |
+| Production / Vercel | `youh4ck3dme/cosy-pocekt-builder` | `git push youh4ck3dme cosy-seed` |
+
+The `DOCS/` directory is intentionally ignored by Git. Keep local notes and
+credentials there only; never commit secrets to a remote repository.
+
 ### Try It Now
 
 1. **Deploy to Vercel** (recommended):

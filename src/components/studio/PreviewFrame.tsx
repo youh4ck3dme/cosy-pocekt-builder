@@ -1,6 +1,9 @@
 import { useEffect, useRef } from "react";
-import { injectCozyElements } from "@/lib/preview/cozy-elements";
-import { PREVIEW_SANDBOX } from "@/lib/preview/sandbox";
+import {
+  PREVIEW_SANDBOX,
+  updatePreviewFrame,
+  type PreviewFrameState,
+} from "@/lib/preview/preview-frame-controller";
 
 export { PREVIEW_SANDBOX };
 
@@ -9,35 +12,24 @@ export { PREVIEW_SANDBOX };
 export function PreviewFrame({ html, title }: { html: string; title: string }) {
   const ref = useRef<HTMLIFrameElement>(null);
   const urlRef = useRef("");
+  const previousHtmlRef = useRef("");
 
   useEffect(() => {
-    const iframe = ref.current;
-    if (!iframe) return;
-    if (!html.trim()) {
-      iframe.removeAttribute("src");
-      if (urlRef.current) {
-        URL.revokeObjectURL(urlRef.current);
-        urlRef.current = "";
-      }
-      return;
-    }
-
-    const next = injectCozyElements(html);
-    const blob = new Blob([next], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const previous = urlRef.current;
-    urlRef.current = url;
-    iframe.dataset.patch = "reloaded";
-    iframe.dataset.patchReason = previous ? "html-changed" : "first";
-    iframe.src = url;
-    if (previous) URL.revokeObjectURL(previous);
-
-    return () => {
-      if (urlRef.current === url) {
-        URL.revokeObjectURL(url);
-        urlRef.current = "";
-      }
+    const state: PreviewFrameState = {
+      get currentUrl() {
+        return urlRef.current;
+      },
+      set currentUrl(val: string) {
+        urlRef.current = val;
+      },
+      get previousHtml() {
+        return previousHtmlRef.current;
+      },
+      set previousHtml(val: string) {
+        previousHtmlRef.current = val;
+      },
     };
+    return updatePreviewFrame(ref.current, html, state);
   }, [html]);
 
   return (

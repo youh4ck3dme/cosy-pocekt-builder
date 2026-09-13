@@ -5,7 +5,7 @@ import { PwaRegister } from "@/components/app/PwaRegister";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import appCss from "../styles.css?url";
 
-const APP_NAME = "Cozy AI Studio";
+const APP_NAME = "Cosy Pocket Builder";
 const THEME_COLOR = "#12110f";
 
 export const Route = createRootRoute({

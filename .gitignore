@@ -1,11 +1,92 @@
+# Dependencies
 node_modules/
-.project_id
-.github_repo
-.env
-.env.*
+.pnp
+.pnp.js
+
+# Build outputs
 dist/
 dist/report.html
 dist/bundlemeta.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project_id
+.github_repo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.*
+!.env.example  # Keep example file for reference
+
+# Testing and coverage
+coverage/
+.nyc_output/
+
+# Vercel
 .vercel/
+.vercel
 .output/
+
+# Nitro
 .nitro/
+
+# Local development
+.DATA_DIR
+.data/
+
+# DOCS - Internal documentation (not for public repo)
+/DOCS/
+
+# Screenshots and test artifacts
+screenshots/
+!.gitkeep
+
+# Local overrides and configs
+docker-compose.override.yml
+*.local
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# IDE and editor specific
+.idea/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Package manager locks (optional - can be committed for reproducibility)
+# package-lock.json
+# pnpm-lock.yaml
+# yarn.lock
+
+# GROK platform files (internal)
+.grok/
+public/__grok/
+
+# Attachments
+attachments/
+
+# Bundle analysis
+bundle-budget.json
+
+# Local CMS and VPS migration artifacts
+cms/
+deploy/vps-wordpress/
+scripts/reset-wp-pass.mjs
+src/stores/todoooo.md

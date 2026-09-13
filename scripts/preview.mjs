@@ -301,6 +301,7 @@ async function restart() {
     cwd: ROOT,
     detached: true,
     stdio: ["ignore", log, log],
+    env: { ...process.env, ALLOW_LOCAL_PGLITE: "1" },
   });
   child.unref();
   writeFileSync(PID_FILE, `${child.pid}\n`);

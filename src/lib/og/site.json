@@ -1,7 +1,7 @@
 {
-  "title": "Cozy AI Studio",
-  "short_name": "Cozy Studio",
+  "title": "Cosy Pocket Builder",
+  "short_name": "Cosy Builder",
   "card": "custom",
   "color": "12110F",
-  "description": "Brief to live preview. A calm studio for shipping product surfaces."
+  "description": "Generate, Preview, Export - Build beautiful web apps from natural language prompts"
 }

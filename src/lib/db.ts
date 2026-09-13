@@ -5,10 +5,8 @@ export type DbSource = "neon" | "pglite";
 
 // An empty/whitespace DATABASE_URL (an easy misconfig in deploy UIs) must mean
 // "unset" — otherwise production would silently run on the PGLite fallback.
-const rawDatabaseUrl =
-  typeof process !== "undefined" ? process.env.DATABASE_URL : undefined;
-const databaseUrl =
-  rawDatabaseUrl && rawDatabaseUrl.trim() ? rawDatabaseUrl : undefined;
+const rawDatabaseUrl = typeof process !== "undefined" ? process.env.DATABASE_URL : undefined;
+const databaseUrl = rawDatabaseUrl && rawDatabaseUrl.trim() ? rawDatabaseUrl : undefined;
 
 /**
  * Active backend: real **Neon** when `DATABASE_URL` is set (deployed / configured
@@ -27,14 +25,8 @@ export const dbSource: DbSource = databaseUrl ? "neon" : "pglite";
  *   const rows2 = await sql.query("select * from todos where id = $1", [id]);
  */
 export interface Sql {
-  <T = Record<string, unknown>>(
-    strings: TemplateStringsArray,
-    ...values: unknown[]
-  ): Promise<T[]>;
-  query<T = Record<string, unknown>>(
-    text: string,
-    params?: unknown[],
-  ): Promise<T[]>;
+  <T = Record<string, unknown>>(strings: TemplateStringsArray, ...values: unknown[]): Promise<T[]>;
+  query<T = Record<string, unknown>>(text: string, params?: unknown[]): Promise<T[]>;
 }
 
 /**
@@ -111,13 +103,8 @@ async function createPgliteSql(): Promise<Sql> {
   // data survives source edits (it resets on dev-server restart).
   globalRef.__pgliteInstance__ ??= (async () => {
     const { PGlite } = await import("@electric-sql/pglite");
-    const pg = new PGlite({
-      parsers: {
-        [OID_INT8]: Number,
-        [OID_DATE]: identity,
-        [OID_INTERVAL]: identity,
-      },
-    });
+    const dataDir = process.env.PGLITE_DATA_DIR?.trim() || undefined;
+    const pg = dataDir ? new PGlite(dataDir) : new PGlite();
     await pg.waitReady;
     await pg.exec(
       "create table if not exists _migrations (name text primary key, applied_at timestamptz not null default now())",
@@ -137,14 +124,30 @@ async function createPgliteSql(): Promise<Sql> {
   // passes serialized on a global chain so concurrent callers never
   // double-apply.
   const migrate = async (): Promise<void> => {
-    const migrations = import.meta.glob("/migrations/*.sql", {
-      query: "?raw",
-      import: "default",
-      eager: true,
-    }) as Record<string, string>;
-    const doneRows = await pg.query<{ name: string }>(
-      "select name from _migrations",
-    );
+    let migrations: Record<string, string> = {};
+    try {
+      migrations = (import.meta.glob("/migrations/*.sql", {
+        query: "?raw",
+        import: "default",
+        eager: true,
+      }) as Record<string, string>) || {};
+    } catch {
+      try {
+        const { readdirSync, readFileSync, existsSync } = await import("node:fs");
+        const { resolve, join } = await import("node:path");
+        const dir = resolve(process.cwd(), "migrations");
+        if (existsSync(dir)) {
+          for (const file of readdirSync(dir)) {
+            if (file.endsWith(".sql")) {
+              migrations[`/migrations/${file}`] = readFileSync(join(dir, file), "utf8");
+            }
+          }
+        }
+      } catch {
+        migrations = {};
+      }
+    }
+    const doneRows = await pg.query<{ name: string }>("select name from _migrations");
     const done = doneRows.rows.map((r) => r.name);
     for (const { name, path } of pendingMigrations(Object.keys(migrations), done)) {
       // Apply + record atomically (parity with scripts/migrate.mjs) so a failed
@@ -176,6 +179,22 @@ async function createSql(): Promise<Sql> {
         "or a server route loader, never from client code.",
     );
   }
+  const isProduction = process.env.NODE_ENV === "production";
+  const isExplicitLocalFallback = Boolean(
+    process.env.ALLOW_LOCAL_PGLITE === "1" ||
+      process.env.VITE_PREVIEW === "1" ||
+      process.env.NODE_ENV === "development",
+  );
+  const isDeployed = Boolean(process.env.VERCEL === "1" || process.env.DEPLOY_ENV === "production");
+
+  if ((isDeployed || (isProduction && !isExplicitLocalFallback)) && !databaseUrl) {
+    throw new Error(
+      "[db] FATAL: DATABASE_URL is missing in production runtime.\n" +
+        "A real PostgreSQL database connection string (e.g. Neon, Supabase) is required in production.\n" +
+        "Ephemeral PGLite fallback is only permitted in local development and preview.",
+    );
+  }
+
   return dbSource === "neon" ? createNeonSql() : createPgliteSql();
 }
 

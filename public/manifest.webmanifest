@@ -1,7 +1,7 @@
 {
-  "name": "Cozy AI Studio",
-  "short_name": "Cozy Studio",
-  "description": "Brief to live preview. A calm studio for shipping product surfaces.",
+  "name": "Cosy Pocket Builder",
+  "short_name": "Cosy Builder",
+  "description": "Generate, Preview, Export - Build beautiful web apps from natural language prompts",
   "id": "/",
   "start_url": "/",
   "scope": "/",
@@ -9,6 +9,35 @@
   "background_color": "#12110f",
   "theme_color": "#12110f",
   "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon-16x16.png",
+      "sizes": "16x16",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
@@ -22,7 +51,7 @@
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-maskable-512.png",
+      "src": "/icons/icon-512-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

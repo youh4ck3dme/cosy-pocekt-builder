@@ -157,29 +157,53 @@ export function renderInstallPageHtml(template, { host, url } = {}) {
     .replaceAll("{{APP_URL}}", escapeHtml(stripInstallParams(url)));
 }
 
-export function renderWebManifest(hostHeader) {
-  const name = appNameFromHost(hostHeader);
+export function renderWebManifest(hostHeader, site = undefined) {
+  const defaultSite = site === undefined ? { title: "Cozy AI Studio", short_name: "Cozy Studio" } : site;
+  const name = defaultSite?.title || appNameFromHost(hostHeader);
+  const shortName = site?.short_name || site?.shortName || (name === "Cozy AI Studio" ? "Cozy Studio" : name);
+  const themeColor = site?.theme_color || site?.themeColor || "#12110f";
+  const backgroundColor = site?.background_color || site?.backgroundColor || "#12110f";
   return JSON.stringify(
     {
       name,
-      short_name: name,
+      short_name: shortName,
       id: "/",
       start_url: "/",
       scope: "/",
       display: "standalone",
-      background_color: "#000000",
-      theme_color: "#000000",
+      background_color: backgroundColor,
+      theme_color: themeColor,
       icons: [
         {
-          src: "/__grok/icon-180.png",
-          sizes: "180x180",
+          src: "/icons/icon-192.png",
+          sizes: "192x192",
           type: "image/png",
+        },
+        {
+          src: "/icons/icon-512.png",
+          sizes: "512x512",
+          type: "image/png",
+        },
+        {
+          src: "/icons/icon-maskable-512.png",
+          sizes: "512x512",
+          type: "image/png",
+          purpose: "maskable",
         },
       ],
     },
     null,
     2,
   );
+}
+
+export function manifestHttp(method = "GET", hostHeader = "") {
+  const body = method === "HEAD" ? null : renderWebManifest(hostHeader, { title: "Cozy AI Studio" });
+  return {
+    status: method === "GET" || method === "HEAD" ? 200 : 405,
+    headers: { "content-type": "application/manifest+json; charset=utf-8" },
+    body,
+  };
 }
 
 export function grokPwaHeadTags(appName = DEFAULT_APP_NAME) {

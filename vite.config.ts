@@ -1,5 +1,5 @@
-import { readdirSync } from "node:fs";
-import { join } from "node:path";
+import { copyFileSync, existsSync, mkdirSync, readdirSync } from "node:fs";
+import { dirname, join } from "node:path";
 import type { Plugin } from "vite";
 import { defineConfig } from "vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
@@ -204,6 +204,32 @@ function clientBoundaryPlugin(): Plugin {
  * Client-only treemap + gzip/brotli report → dist/report.html.
  * SSR / Nitro graphs are ignored so server Node APIs never inflate the budget.
  */
+/**
+ * PGLite loads companion sidecar files at runtime. The Nitro/Vercel
+ * tracer includes the JS chunk but can miss that sidecar file on Windows builds,
+ * which makes production preview crash before the first request when DATABASE_URL
+ * is absent. Copy them next to the bundled PGLite library after Nitro writes the
+ * function output.
+ */
+function pgliteDataAssetPlugin(): Plugin {
+  return {
+    name: "app-builder:pglite-data-asset",
+    apply: "build",
+    closeBundle() {
+      const sourceDir = join(process.cwd(), "node_modules", "@electric-sql", "pglite", "dist");
+      const targetDir = join(process.cwd(), ".vercel", "output", "functions", "__server.func", "_libs");
+      for (const file of readdirSync(sourceDir)) {
+        if (!/\.(?:wasm|data)$/.test(file)) continue;
+        const source = join(sourceDir, file);
+        const target = join(targetDir, file);
+        if (!existsSync(source)) continue;
+        mkdirSync(dirname(target), { recursive: true });
+        copyFileSync(source, target);
+      }
+    },
+  };
+}
+
 function bundleAnalyzerPlugin(): Plugin {
   const records: { name: string; code: string }[] = [];
   return {
@@ -239,10 +265,11 @@ export default defineConfig(({ command, isPreview }) => ({
     host: "0.0.0.0",
     port: 8080,
     strictPort: true,
+    allowedHosts: ["cozy.h4ck3d.me"],
   },
   preview: {
-    host: "127.0.0.1",
-    port: 8081,
+    host: process.env.PREVIEW_HOST ?? "127.0.0.1",
+    port: Number(process.env.PREVIEW_PORT ?? process.env.PORT ?? 8081),
     strictPort: true,
   },
   resolve: { tsconfigPaths: true },
@@ -253,6 +280,7 @@ export default defineConfig(({ command, isPreview }) => ({
     grokPwaPlugin(),
     clientBoundaryPlugin(),
     bundleAnalyzerPlugin(),
+    pgliteDataAssetPlugin(),
     tailwindcss(),
     tanstackStart(),
     ...(command === "build" || isPreview

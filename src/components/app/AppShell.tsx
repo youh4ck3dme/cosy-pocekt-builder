@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   FileText,
+  Globe,
   FolderOpen,
   LayoutDashboard,
   Menu,
@@ -11,12 +12,15 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { authEnabled, signOut } from "@/lib/auth/client";
+import { useCurrentUserState } from "@/lib/auth/use-current-user";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/studio", label: "Projekty", icon: FolderOpen },
   { to: "/prompts", label: "Promty", icon: FileText },
   { to: "/blueprints", label: "Blueprinty", icon: ScrollText },
+  { to: "/wordpress", label: "WordPress", icon: Globe },
   { to: "/launch", label: "Launch", icon: Rocket },
   { to: "/settings", label: "Nastavenie", icon: Settings },
 ] as const;
@@ -24,6 +28,7 @@ const NAV = [
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [open, setOpen] = useState(false);
+  const { user } = useCurrentUserState();
 
   return (
     <div
@@ -91,6 +96,27 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
+        <div className="border-t border-border p-3">
+          {authEnabled && user ? (
+            <div className="space-y-2">
+              <p className="truncate text-xs text-muted" title={user.primaryEmail ?? user.displayName ?? undefined}>
+                {user.displayName ?? user.primaryEmail}
+              </p>
+              <p className="text-xs text-accent">Prihlásený</p>
+              <button
+                type="button"
+                className="text-xs text-muted underline-offset-4 hover:text-fg hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+                onClick={() => void signOut()}
+              >
+                Odhlásiť sa
+              </button>
+            </div>
+          ) : authEnabled ? (
+            <Link className="text-sm text-accent underline-offset-4 hover:underline" to="/login">
+              Prihlásiť sa
+            </Link>
+          ) : null}
+        </div>
       </aside>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">

@@ -20,7 +20,7 @@
  * `process.env`, which is why the merge has to happen before Vite starts.
  */
 import { spawn } from "node:child_process";
-import { readFileSync, realpathSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { constants as osConstants } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -105,21 +105,35 @@ export function isMainModule(moduleUrl) {
 }
 
 function main(argv) {
-  const [command, ...args] = argv;
+  let [command, ...args] = argv;
   if (!command) {
     console.error("usage: node scripts/with-app-env.mjs <command> [args…]");
     process.exit(2);
   }
   const env = mergeAppEnv(readAppEnv(projectRoot()), process.env);
+  const isDevBuild = args.includes("--mode") && args[args.indexOf("--mode") + 1] === "development";
+  const isBuild = args.includes("build") || command === "build";
+  const isPreview = args.includes("preview") || command === "preview";
+  if ((isBuild && !isDevBuild) || isPreview) {
+    env.NODE_ENV = "production";
+  }
+
   // Ensure node_modules/.bin is in PATH for spawned processes
   const nodeModulesBin = join(projectRoot(), "node_modules", ".bin");
   env.PATH = [nodeModulesBin, env.PATH || ""].filter(Boolean).join(
     process.platform === "win32" ? ";" : ":"
   );
+  if (process.platform === "win32" && !/[\\/]/.test(command)) {
+    const viteBin = join(projectRoot(), "node_modules", command, "bin", `${command}.js`);
+    if (existsSync(viteBin)) {
+      args = [viteBin, ...args];
+      command = process.execPath;
+    }
+  }
   const child = spawn(command, args, {
     stdio: "inherit",
     env,
-    shell: true,
+    shell: false,
     cwd: projectRoot(),
   });
   // The dev server is long-running and is stopped by signalling this wrapper.

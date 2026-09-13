@@ -1,0 +1,253 @@
+[
+  {
+    "id": "landing-page",
+    "name": "Simple Landing Page",
+    "prompt": "A clean, modern landing page for a SaaS product. Include hero section with call-to-action, feature cards, testimonials, and footer. Use a calm blue color scheme.",
+    "expected": {
+      "hasDoctype": true,
+      "hasViewport": true,
+      "hasTitle": true,
+      "noHorizontalOverflow": true,
+      "noConsoleErrors": true
+    }
+  },
+  {
+    "id": "todo-app",
+    "name": "Todo Application",
+    "prompt": "A full-featured todo app with add, delete, complete, and filter functionality. Persist todos to localStorage. Use a minimal dark theme with purple accents.",
+    "expected": {
+      "hasDoctype": true,
+      "hasViewport": true,
+      "hasTitle": true,
+      "noHorizontalOverflow": true,
+      "hasLocalStorage": true,
+      "noConsoleErrors": true
+    }
+  },
+  {
+    "id": "dashboard",
+    "name": "Admin Dashboard",
+    "prompt": "A responsive admin dashboard with sidebar navigation, main content area, and top bar. Include cards for stats, recent activity list, and user profile section. Use a professional dark theme.",
+    "expected": {
+      "hasDoctype": true,
+      "hasViewport": true,
+      "hasTitle": true,
+      "noHorizontalOverflow": true,
+      "noConsoleErrors": true
+    }
+  },
+  {
+    "id": "portfolio",
+    "name": "Portfolio Site",
+    "prompt": "A creative portfolio website for a designer. Include hero with name, about section, project grid, skills section, and contact form. Use a light theme with pastel colors.",
+    "expected": {
+      "hasDoctype": true,
+      "hasViewport": true,
+      "hasTitle": true,
+      "noHorizontalOverflow": true,
+      "noConsoleErrors": true
+    }
+  },
+  {
+    "id": "blog",
+    "name": "Blog Layout",
+    "prompt": "A clean blog layout with header, featured post, recent posts list, categories sidebar, and footer. Use a readable serif font for body text and a warm color palette.",
+    "expected": {
+      "hasDoctype": true,
+      "hasViewport": true,
+      "hasTitle": true,
+      "noHorizontalOverflow": true,
+      "noConsoleErrors": true
+    }
+  },
+  {
+    "id": "calculator",
+    "name": "Calculator App",
+    "prompt": "A functional calculator with buttons for digits 0-9, operators (+, -, *, /, =), and clear button. Style it like a classic calculator with dark buttons and orange operators. Make it fully responsive.",
+    "expected": {
+      "hasDoctype": true,
+      "hasViewport": true,
+      "hasTitle": true,
+      "noHorizontalOverflow": true,
+      "interactive": true,
+      "noConsoleErrors": true
+    }
+  },
+  {
+    "id": "weather-app",
+    "name": "Weather App UI",
+    "prompt": "A weather application UI with current conditions, 5-day forecast, and hourly weather. Use weather icons (emoji or SVG), temperature display, and a search bar. Use a gradient background based on weather conditions.",
+    "expected": {
+      "hasDoctype": true,
+      "hasViewport": true,
+      "hasTitle": true,
+      "noHorizontalOverflow": true,
+      "noConsoleErrors": true
+    }
+  },
+  {
+    "id": "ecommerce-product",
+    "name": "E-commerce Product Page",
+    "prompt": "An e-commerce product detail page with image gallery, product info (name, price, description), add to cart button, and related products section. Use a clean white background with subtle shadows.",
+    "expected": {
+      "hasDoctype": true,
+      "hasViewport": true,
+      "hasTitle": true,
+      "noHorizontalOverflow": true,
+      "noConsoleErrors": true
+    }
+  },
+  {
+    "id": "chat-interface",
+    "name": "Chat Interface",
+    "prompt": "A modern chat interface with message list, input area, and send button. Messages should have avatars, timestamps, and be styled with speech bubbles. Use a light background with dark text.",
+    "expected": {
+      "hasDoctype": true,
+      "hasViewport": true,
+      "hasTitle": true,
+      "noHorizontalOverflow": true,
+      "noConsoleErrors": true
+    }
+  },
+  {
+    "id": "form-validation",
+    "name": "Form with Validation",
+    "prompt": "A registration form with fields for name, email, password, and confirm password. Include client-side validation with error messages. Use a clean card layout with focus states.",
+    "expected": {
+      "hasDoctype": true,
+      "hasViewport": true,
+      "hasTitle": true,
+      "noHorizontalOverflow": true,
+      "hasForm": true,
+      "noConsoleErrors": true
+    }
+  },
+  {
+    "id": "recipe-finder",
+    "name": "Recipe Finder App",
+    "prompt": "A recipe search app with search bar, filters for meal type and cuisine, recipe cards with images, and a favorites feature using localStorage. Use a warm, food-inspired color palette with orange and brown accents.",
+    "expected": {
+      "hasDoctype": true,
+      "hasViewport": true,
+      "hasTitle": true,
+      "noHorizontalOverflow": true,
+      "hasLocalStorage": true,
+      "noConsoleErrors": true
+    }
+  },
+  {
+    "id": "note-taking",
+    "name": "Note Taking App",
+    "prompt": "A minimal note-taking app with markdown support. Include a sidebar for note list, main editor area, and save/load functionality to localStorage. Use a clean, distraction-free design with light gray background.",
+    "expected": {
+      "hasDoctype": true,
+      "hasViewport": true,
+      "hasTitle": true,
+      "noHorizontalOverflow": true,
+      "hasLocalStorage": true,
+      "noConsoleErrors": true
+    }
+  },
+  {
+    "id": "countdown-timer",
+    "name": "Countdown Timer",
+    "prompt": "A countdown timer app with input for hours, minutes, seconds. Include start, pause, reset buttons and visual progress indication. Use a circular progress display. Make it mobile-friendly.",
+    "expected": {
+      "hasDoctype": true,
+      "hasViewport": true,
+      "hasTitle": true,
+      "noHorizontalOverflow": true,
+      "interactive": true,
+      "noConsoleErrors": true
+    }
+  },
+  {
+    "id": "quiz-app",
+    "name": "Quiz Application",
+    "prompt": "A multi-step quiz app with multiple choice questions, scoring, and results page. Include a question counter, timer, and ability to restart. Use a fun, educational color scheme.",
+    "expected": {
+      "hasDoctype": true,
+      "hasViewport": true,
+      "hasTitle": true,
+      "noHorizontalOverflow": true,
+      "interactive": true,
+      "noConsoleErrors": true
+    }
+  },
+  {
+    "id": "image-gallery",
+    "name": "Image Gallery",
+    "prompt": "An image gallery with thumbnail grid, lightbox for full-size viewing, navigation arrows, and captions. Use CSS Grid for layout and smooth transitions. Use emoji as placeholder images.",
+    "expected": {
+      "hasDoctype": true,
+      "hasViewport": true,
+      "hasTitle": true,
+      "noHorizontalOverflow": true,
+      "noConsoleErrors": true
+    }
+  },
+  {
+    "id": "budget-tracker",
+    "name": "Budget Tracker",
+    "prompt": "A personal budget tracker with income/expense entries, category selection, balance display, and monthly summary. Persist data to localStorage. Use a green/red color scheme for positive/negative values.",
+    "expected": {
+      "hasDoctype": true,
+      "hasViewport": true,
+      "hasTitle": true,
+      "noHorizontalOverflow": true,
+      "hasLocalStorage": true,
+      "noConsoleErrors": true
+    }
+  },
+  {
+    "id": "pomodoro-timer",
+    "name": "Pomodoro Timer",
+    "prompt": "A Pomodoro timer with 25-minute work and 5-minute break intervals. Include session counter, start/pause/reset controls, and visual indicators. Use a red and green color scheme.",
+    "expected": {
+      "hasDoctype": true,
+      "hasViewport": true,
+      "hasTitle": true,
+      "noHorizontalOverflow": true,
+      "interactive": true,
+      "noConsoleErrors": true
+    }
+  },
+  {
+    "id": "weather-dashboard",
+    "name": "Weather Dashboard",
+    "prompt": "A weather dashboard showing current conditions for multiple cities. Include temperature, humidity, wind speed, and weather icons. Use a card-based layout with glass-morphism effect.",
+    "expected": {
+      "hasDoctype": true,
+      "hasViewport": true,
+      "hasTitle": true,
+      "noHorizontalOverflow": true,
+      "noConsoleErrors": true
+    }
+  },
+  {
+    "id": "task-kanban",
+    "name": "Kanban Task Board",
+    "prompt": "A kanban-style task board with Todo, In Progress, Done columns. Allow dragging tasks between columns, adding new tasks, and deleting. Use a Trello-like design with bright accent colors.",
+    "expected": {
+      "hasDoctype": true,
+      "hasViewport": true,
+      "hasTitle": true,
+      "noHorizontalOverflow": true,
+      "interactive": true,
+      "noConsoleErrors": true
+    }
+  },
+  {
+    "id": "responsive-navbar",
+    "name": "Responsive Navbar",
+    "prompt": "A responsive navigation bar that collapses into a hamburger menu on mobile. Include logo, navigation links, and mobile menu toggle. Use smooth animations for the mobile menu.",
+    "expected": {
+      "hasDoctype": true,
+      "hasViewport": true,
+      "hasTitle": true,
+      "noHorizontalOverflow": true,
+      "interactive": true,
+      "noConsoleErrors": true
+    }
+  }
+]

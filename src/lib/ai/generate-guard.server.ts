@@ -9,7 +9,8 @@ import {
   setResponseStatus,
 } from "@tanstack/react-start/server";
 import { assertSameSiteRequest, CrossSiteRequestError } from "@/lib/auth/isolation.server";
-import { consumeQuota, type QuotaStore } from "@/lib/ai/generate-quota";
+import { consumeQuota, createInMemoryQuotaStore, type QuotaStore } from "@/lib/ai/generate-quota";
+import { getRedisQuotaStore } from "@/lib/ai/redis-quota.server";
 
 export class GenerateGateError extends Error {
   readonly status: number;
@@ -26,10 +27,38 @@ const COOKIE = "cozy_generate_access";
 
 const globalRef = globalThis as typeof globalThis & {
   __generateQuota__?: QuotaStore;
+  __generateQuotaRedis__?: boolean;
 };
 
-function quotaStore(): QuotaStore {
-  globalRef.__generateQuota__ ??= new Map();
+async function quotaStore(): Promise<QuotaStore> {
+  // Check if we've already determined the store type
+  if (globalRef.__generateQuota__) {
+    return globalRef.__generateQuota__;
+  }
+
+  // Try Redis first if REDIS_URL is configured
+  const redisUrl = process.env.REDIS_URL || process.env.REDIS_MODULE_URL;
+  
+  if (redisUrl) {
+    try {
+      const redisStore = getRedisQuotaStore();
+      const connected = await redisStore.connect();
+      
+      if (connected) {
+        globalRef.__generateQuota__ = redisStore;
+        globalRef.__generateQuotaRedis__ = true;
+        console.log('[Quota] Using Redis-based rate limiting');
+        return redisStore;
+      }
+    } catch (error) {
+      console.warn('[Quota] Redis connection failed, falling back to in-memory:', error);
+    }
+  }
+
+  // Fall back to in-memory store
+  console.log('[Quota] Using in-memory rate limiting');
+  globalRef.__generateQuota__ = createInMemoryQuotaStore();
+  globalRef.__generateQuotaRedis__ = false;
   return globalRef.__generateQuota__;
 }
 
@@ -75,7 +104,7 @@ export function applyGateHttp(err: GenerateGateError): void {
   if (err.retryAfter) setResponseHeader("Retry-After", String(err.retryAfter));
 }
 
-export function gateGenerate(): { ip: string } {
+export async function gateGenerate(): Promise<{ ip: string }> {
   try {
     assertSameSiteRequest();
   } catch (e) {
@@ -98,7 +127,8 @@ export function gateGenerate(): { ip: string } {
   const ip = clientIp();
   const perMinute = envInt("MAX_REQUESTS_PER_MINUTE", 10);
   const perDay = envInt("MAX_REQUESTS_PER_DAY", 100);
-  const result = consumeQuota(quotaStore(), ip, Date.now(), perMinute, perDay);
+  const store = await quotaStore();
+  const result = await consumeQuota(store, ip, Date.now(), perMinute, perDay);
   if (!result.ok) {
     const message =
       result.reason === "day"
@@ -144,6 +174,7 @@ export function redeemAccess(token: string): { ok: true } | { ok: false; error: 
   return { ok: true };
 }
 
-export function resetQuotaStoreForTests(): void {
-  quotaStore().clear();
+export async function resetQuotaStoreForTests(): Promise<void> {
+  const store = await quotaStore();
+  store.clear();
 }
