@@ -37,6 +37,7 @@ describe("Studio Store & Generation Lifecycle (src/stores/studio-store.ts)", () 
 
       const updated = useStudioStore.getState();
       assert.equal(updated.running, true);
+      assert.equal(updated.exportReady, false);
       assert.equal(updated.error, null);
       assert.ok(updated.abortController instanceof AbortController);
       assert.ok(signal instanceof AbortSignal);
@@ -69,6 +70,7 @@ describe("Studio Store & Generation Lifecycle (src/stores/studio-store.ts)", () 
       // Start new generation revision
       const signal = store.beginGenerate();
       assert.equal(useStudioStore.getState().running, true);
+      assert.equal(useStudioStore.getState().exportReady, false);
       assert.equal(signal.aborted, false);
 
       // User clicks Stop
@@ -77,6 +79,7 @@ describe("Studio Store & Generation Lifecycle (src/stores/studio-store.ts)", () 
       const afterStop = useStudioStore.getState();
       assert.equal(signal.aborted, true, "Signal must be aborted by stopGenerate");
       assert.equal(afterStop.running, false);
+      assert.equal(afterStop.exportReady, true);
       assert.equal(afterStop.abortController, null);
       assert.equal(afterStop.error, "Cancelled");
       assert.equal(afterStop.messages.at(-1)?.text, "Stopped.");
@@ -98,6 +101,33 @@ describe("Studio Store & Generation Lifecycle (src/stores/studio-store.ts)", () 
 
       assert.equal(useStudioStore.getState().running, false);
       assert.equal(useStudioStore.getState().error, null);
+    });
+
+    it("restores export readiness when an offline revision keeps the existing preview", () => {
+      const store = useStudioStore.getState();
+      store.applyResult({
+        title: "Existing Preview",
+        code: "<main>Existing</main>",
+        html: "<main>Existing</main>",
+        assistantText: "Initial preview generated.",
+        provider: "mistral",
+      });
+
+      store.beginGenerate();
+      assert.equal(useStudioStore.getState().running, true);
+      assert.equal(useStudioStore.getState().exportReady, false);
+
+      store.finishGenerate();
+      store.pushAssistant("Offline. Preview unchanged.");
+
+      const afterOfflineRevision = useStudioStore.getState();
+      assert.equal(afterOfflineRevision.running, false);
+      assert.equal(afterOfflineRevision.exportReady, true);
+      assert.equal(afterOfflineRevision.abortController, null);
+      assert.equal(afterOfflineRevision.title, "Existing Preview");
+      assert.equal(afterOfflineRevision.html, "<main>Existing</main>");
+      assert.equal(afterOfflineRevision.code, "<main>Existing</main>");
+      assert.equal(afterOfflineRevision.messages.at(-1)?.text, "Offline. Preview unchanged.");
     });
   });
 
@@ -121,6 +151,7 @@ describe("Studio Store & Generation Lifecycle (src/stores/studio-store.ts)", () 
       assert.equal(updated.html, "<main>Portfolio</main>");
       assert.equal(updated.provider, "gemini");
       assert.equal(updated.running, false);
+      assert.equal(updated.exportReady, true);
       assert.equal(updated.error, null);
       assert.equal(updated.abortController, null);
 

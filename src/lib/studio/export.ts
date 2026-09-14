@@ -16,6 +16,15 @@ export type ExportValidationResult =
   | { ok: true; html: string }
   | { ok: false; issues: ExportValidationIssue[] };
 
+export type ExportDraft = {
+  previousHtml: string;
+  buffer: string;
+};
+
+export type FinalizedExportDraft =
+  | { ok: true; html: string; exportHtml: string }
+  | { ok: false; html: string; issues: ExportValidationIssue[] };
+
 const COZY_RUNTIME_SCRIPT = /<script\b[^>]*data-cozy-elements\b[^>]*>[\s\S]*?<\/script>/gi;
 const FORBIDDEN_RUNTIME =
   /\b(?:data-cozy-elements|customElements|CozyApp|CozyBoard|CozyColumn|CozyCard|CozyBtn|CozyMsg)\b/i;
@@ -149,6 +158,22 @@ export function prepareHtmlExport(html: string, manifest?: string): ExportValida
   const clean = stripPreviewRuntime(html).trim();
   const result = validateExportHtml(clean, manifest);
   return result.ok ? { ok: true, html: clean } : result;
+}
+
+export function createExportDraft(previousHtml = ""): ExportDraft {
+  return { previousHtml, buffer: "" };
+}
+
+export function appendExportDraft(draft: ExportDraft, chunk: string): ExportDraft {
+  return { ...draft, buffer: `${draft.buffer}${chunk}` };
+}
+
+export function finalizeExportDraft(draft: ExportDraft): FinalizedExportDraft {
+  const prepared = prepareHtmlExport(draft.buffer);
+  if (!prepared.ok) {
+    return { ok: false, html: draft.previousHtml, issues: prepared.issues };
+  }
+  return { ok: true, html: draft.buffer.trim(), exportHtml: prepared.html };
 }
 
 export function slugFromTitle(title: string): string {

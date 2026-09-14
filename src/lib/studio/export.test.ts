@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { prepareHtmlExport, validateExportHtml } from "./export.ts";
+import {
+  appendExportDraft,
+  createExportDraft,
+  finalizeExportDraft,
+  prepareHtmlExport,
+  validateExportHtml,
+} from "./export.ts";
 
 const validHtml = `<!DOCTYPE html><html><head><title>Demo</title></head><body><main><section id="demo">Demo</section></main></body></html>`;
 
@@ -35,5 +41,23 @@ describe("HTML export validation", () => {
     }));
     assert.equal(result.ok, false);
     assert.ok(result.ok === false && result.issues.some((item) => item.code === "manifest"));
+  });
+
+  it("keeps a previous valid export when a response buffer is truncated", () => {
+    const draft = appendExportDraft(
+      createExportDraft(validHtml),
+      '<!DOCTYPE html><html><head><title>New</title></head><body><section class="',
+    );
+    const result = finalizeExportDraft(draft);
+    assert.equal(result.ok, false);
+    assert.ok(!result.ok && result.html === validHtml);
+  });
+
+  it("does not finalize an incomplete document as exportable", () => {
+    const result = finalizeExportDraft(
+      appendExportDraft(createExportDraft(), "<!DOCTYPE html><html><head></head><body>"),
+    );
+    assert.equal(result.ok, false);
+    assert.ok(!result.ok && result.issues.some((item) => item.code === "structure"));
   });
 });

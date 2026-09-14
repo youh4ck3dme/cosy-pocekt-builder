@@ -17,6 +17,7 @@ type StudioState = {
   html: string;
   messages: StudioMessage[];
   running: boolean;
+  exportReady: boolean;
   error: string | null;
   provider: StudioProvider;
   abortController: AbortController | null;
@@ -49,6 +50,7 @@ const empty = {
   html: "",
   messages: [] as StudioMessage[],
   running: false,
+  exportReady: false,
   error: null as string | null,
   provider: null as StudioProvider,
   abortController: null as AbortController | null,
@@ -65,9 +67,9 @@ export const useStudioStore = create<StudioState>()(
       setBrief: (brief) => set({ brief }),
       setRunning: (running) => set({ running }),
       setError: (error) => set({ error }),
-      hydratePreview: ({ title, code, html }) => set((s) => (s.html ? s : { title, code, html })),
-      loadPreview: ({ title, code, html }) => set({ title, code, html, error: null }),
-      updateCode: (code) => set({ code, html: code }),
+      hydratePreview: ({ title, code, html }) => set((s) => (s.html ? s : { title, code, html, exportReady: true })),
+      loadPreview: ({ title, code, html }) => set({ title, code, html, error: null, exportReady: true }),
+      updateCode: (code) => set({ code, html: code, exportReady: true }),
       reset: () => {
         get().abortController?.abort();
         set(empty);
@@ -88,6 +90,7 @@ export const useStudioStore = create<StudioState>()(
           html,
           provider,
           running: false,
+          exportReady: true,
           error: null,
           abortController: null,
           messages: [...s.messages, assistant(assistantText)].slice(-24),
@@ -95,28 +98,30 @@ export const useStudioStore = create<StudioState>()(
       beginGenerate: () => {
         get().abortController?.abort();
         const controller = new AbortController();
-        set({ abortController: controller, running: true, error: null });
+        set({ abortController: controller, running: true, exportReady: false, error: null });
         return withTimeout(controller.signal, GENERATE_TIMEOUT_MS);
       },
       stopGenerate: () => {
         const { abortController, running } = get();
         abortController?.abort();
         if (!running) {
-          set({ abortController: null });
+          set({ abortController: null, exportReady: Boolean(get().html) });
           return;
         }
         set((s) => ({
           abortController: null,
           running: false,
+          exportReady: Boolean(s.html),
           error: "Cancelled",
           messages: [...s.messages, assistant("Stopped.")].slice(-24),
         }));
       },
-      finishGenerate: () => set({ abortController: null, running: false }),
+      finishGenerate: () => set((s) => ({ abortController: null, running: false, exportReady: Boolean(s.html) })),
       failGenerate: (message) =>
         set((s) => ({
           abortController: null,
           running: false,
+          exportReady: Boolean(s.html),
           error: message,
           messages: [...s.messages, assistant(message)].slice(-24),
         })),
@@ -128,6 +133,7 @@ export const useStudioStore = create<StudioState>()(
         title: s.title,
         code: s.code,
         html: s.html,
+        exportReady: s.exportReady,
         messages: s.messages,
         provider: s.provider,
       }),
@@ -136,6 +142,7 @@ export const useStudioStore = create<StudioState>()(
         ...(persisted as Partial<StudioState>),
         abortController: null,
         running: false,
+        exportReady: Boolean((persisted as Partial<StudioState>).html),
       }),
     },
   ),
