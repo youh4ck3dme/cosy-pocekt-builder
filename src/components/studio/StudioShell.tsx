@@ -139,6 +139,7 @@ export function StudioShell() {
       if (revising) {
         await sleep(Math.max(0, 700 - (Date.now() - started)));
         if (id !== runId.current || signal.aborted) return;
+        finishGenerate();
         pushAssistant("Offline. Preview unchanged.");
         return;
       }

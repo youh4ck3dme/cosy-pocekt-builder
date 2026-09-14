@@ -102,6 +102,33 @@ describe("Studio Store & Generation Lifecycle (src/stores/studio-store.ts)", () 
       assert.equal(useStudioStore.getState().running, false);
       assert.equal(useStudioStore.getState().error, null);
     });
+
+    it("restores export readiness when an offline revision keeps the existing preview", () => {
+      const store = useStudioStore.getState();
+      store.applyResult({
+        title: "Existing Preview",
+        code: "<main>Existing</main>",
+        html: "<main>Existing</main>",
+        assistantText: "Initial preview generated.",
+        provider: "mistral",
+      });
+
+      store.beginGenerate();
+      assert.equal(useStudioStore.getState().running, true);
+      assert.equal(useStudioStore.getState().exportReady, false);
+
+      store.finishGenerate();
+      store.pushAssistant("Offline. Preview unchanged.");
+
+      const afterOfflineRevision = useStudioStore.getState();
+      assert.equal(afterOfflineRevision.running, false);
+      assert.equal(afterOfflineRevision.exportReady, true);
+      assert.equal(afterOfflineRevision.abortController, null);
+      assert.equal(afterOfflineRevision.title, "Existing Preview");
+      assert.equal(afterOfflineRevision.html, "<main>Existing</main>");
+      assert.equal(afterOfflineRevision.code, "<main>Existing</main>");
+      assert.equal(afterOfflineRevision.messages.at(-1)?.text, "Offline. Preview unchanged.");
+    });
   });
 
   describe("3. applyResult state updates", () => {
