@@ -1,5 +1,6 @@
 import { abortKind } from "@/lib/ai/abort-signal";
 import { injectCozyElements } from "@/lib/preview/cozy-elements";
+import { validateExportHtml } from "@/lib/studio/export";
 import { createServerFn } from "@tanstack/react-start";
 
 
@@ -90,6 +91,10 @@ production-quality, self-contained single-file web apps from a short user brief.
   where needed, keyboard operable, all inputs labeled.
 - No console errors. Guard null refs, keep IDs unique, and set text via
   textContent (never inject raw user input into innerHTML).
+- Export safety: return the complete document without truncating the final
+  closing tags. Never emit blob:, file://, local filesystem paths, preview
+  runtime code, data-cozy-elements, customElements, or CozyApp/CozyBoard/
+  CozyColumn/CozyCard/CozyBtn/CozyMsg identifiers.
 
 ## Cozy components (optional, already injected - do NOT redefine, no CDNs)
 <cozy-app kicker heading lede>, <cozy-board>, <cozy-column name>, <cozy-card priority>,
@@ -116,8 +121,8 @@ plus a change request.
   </html>. No Markdown, no fences, no commentary.
 - Keep the existing palette, fonts and overall look unless the request changes
   them.
-- Preserve the pre-injected <script data-cozy-elements> runtime and any
-  <cozy-*> usage; do not strip or redefine them.
+- Do not emit or preserve the preview-only <script data-cozy-elements> runtime.
+  The editor injects that runtime only inside the preview iframe.
 - Preserve all working behavior and persisted state you were not asked to touch.
 - Stay self-contained: no external scripts/fonts/libs, vanilla JS, localStorage
   wrapped in try/catch.
@@ -135,6 +140,8 @@ plus a change request.
   patterns - not bolted on.
 - After editing, re-check: no external requests, no console errors, no layout breakage at 360px, no
   horizontal overflow, and unchanged features still work.
+- Return the entire document. If content is too long, shorten section copy
+  before output; never cut the document at a token or character limit.
 
 Output the full updated HTML document now.`;
 
@@ -369,8 +376,19 @@ async function generateWithRepair(
     if (SELF_REPAIR_ENABLED) {
       const { validateHtml } = await import("./validation/index.server");
       const validation = await validateHtml(result.text);
+      const extracted = extractHtml(result.text);
+      const exportValidation = extracted
+        ? validateExportHtml(extracted)
+        : { ok: false as const, issues: [{ message: "AI output is not a complete HTML document." }] };
+      const exportErrors = exportValidation.ok
+        ? []
+        : exportValidation.issues.map((item) => ({
+            type: "syntax" as const,
+            message: item.message,
+            severity: "critical" as const,
+          }));
 
-      if (validation.ok) {
+      if (validation.ok && exportValidation.ok) {
         // Success - pack and return
         const packed = pack(result.text, result.provider, result.model);
         if (packed.ok) {
@@ -383,17 +401,18 @@ async function generateWithRepair(
       }
 
       // Validation failed - check if we should retry
+      const allErrors = [...validation.errors, ...exportErrors];
       if (retryCount >= MAX_REPAIR_RETRIES) {
-        console.warn(`Self-repair: Max retries (${MAX_REPAIR_RETRIES}) reached. Errors:`, validation.errors);
+        console.warn(`Self-repair: Max retries (${MAX_REPAIR_RETRIES}) reached. Errors:`, allErrors);
         return {
           ok: false,
-          error: `Generated HTML failed validation after ${MAX_REPAIR_RETRIES + 1} attempt(s): ${validation.errors.map((e) => e.message).join("; ")}`,
+          error: `Generated HTML failed validation after ${MAX_REPAIR_RETRIES + 1} attempt(s): ${allErrors.map((e) => e.message).join("; ")}`,
           status: 422,
         };
       }
 
       // Build repair prompt
-      const errorMessages = validation.errors
+      const errorMessages = allErrors
         .map((e, i) => `${i + 1}. [${e.type.toUpperCase()}] ${e.message}`)
         .join('\n');
 
@@ -414,7 +433,7 @@ Previous HTML:
 ${result.text}`;
 
       // Retry with repair using REVISE_SYSTEM
-      console.log(`Self-repair: Attempting fix for ${validation.errors.length} errors (attempt ${retryCount + 1}/${MAX_REPAIR_RETRIES})`);
+      console.log(`Self-repair: Attempting fix for ${allErrors.length} errors (attempt ${retryCount + 1}/${MAX_REPAIR_RETRIES})`);
       return generateWithRepair(
         repairPrompt,
         undefined, // Not revising, generating fresh
