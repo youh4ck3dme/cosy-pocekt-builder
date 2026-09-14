@@ -6,13 +6,15 @@ import { copyText, downloadHtml, prepareHtmlExport, slugFromTitle } from "@/lib/
 export function ExportActions({
   html,
   title,
+  exportReady = true,
 }: {
   html: string;
   title: string;
+  exportReady?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const disabled = !html.trim();
+  const disabled = !html.trim() || !exportReady;
 
   async function onCopy() {
     if (disabled) return;

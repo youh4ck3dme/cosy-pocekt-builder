@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { isAbortError } from "@/lib/ai/abort-signal";
 import { generatePreview, getAiStatus, type AiStatus } from "@/lib/ai/generate";
 import { localPreviewHtml } from "@/lib/preview/local-templates";
+import { appendExportDraft, createExportDraft, finalizeExportDraft } from "@/lib/studio/export";
 import { clearOfflinePreview, persistOfflinePreview, readOfflinePreview } from "@/lib/pwa/offline";
 import { useOnline } from "@/lib/pwa/use-online";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,7 @@ export function StudioShell() {
   const brief = useStudioStore((s) => s.brief);
   const setBrief = useStudioStore((s) => s.setBrief);
   const running = useStudioStore((s) => s.running);
+  const exportReady = useStudioStore((s) => s.exportReady);
   const beginGenerate = useStudioStore((s) => s.beginGenerate);
   const stopGenerate = useStudioStore((s) => s.stopGenerate);
   const finishGenerate = useStudioStore((s) => s.finishGenerate);
@@ -130,6 +132,7 @@ export function StudioShell() {
     const revising = Boolean(currentHtml) && !opts?.fresh;
     const id = ++runId.current;
     const signal = beginGenerate();
+    let exportDraft = createExportDraft(currentHtml);
     pushUser(prompt);
     const started = Date.now();
     if (!online) {
@@ -164,6 +167,14 @@ export function StudioShell() {
       });
       if (id !== runId.current || signal.aborted) return;
       if (remote.ok) {
+        exportDraft = appendExportDraft(exportDraft, remote.html);
+        const finalized = finalizeExportDraft(exportDraft);
+        if (!finalized.ok) {
+          pushAssistant("Generated HTML was incomplete. Previous preview kept.");
+          setError(finalized.issues[0]?.message ?? "Generated HTML neprešiel validáciou.");
+          finishGenerate();
+          return;
+        }
         applyResult({
           title: remote.title,
           code: remote.code,
@@ -438,7 +449,7 @@ export function StudioShell() {
                   ? "Live preview"
                   : "Saved preview"}
             </p>
-            <ExportActions html={html} title={title} />
+            <ExportActions html={html} title={title} exportReady={exportReady && !running} />
           </div>
           {html ? (
             <div className="relative min-h-0 flex-1">
