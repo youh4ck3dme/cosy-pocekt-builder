@@ -2,22 +2,35 @@ import { CodeViewer } from "@/components/studio/CodeViewer";
 import { ExportActions } from "@/components/studio/ExportActions";
 import { GenerateButton } from "@/components/studio/GenerateButton";
 import { LivePreview } from "@/components/studio/LivePreview";
+import { QualityPanel } from "@/components/studio/QualityPanel";
+import { SlashMenu } from "@/components/studio/SlashMenu";
 import { StopButton } from "@/components/studio/StopButton";
 import { ThinkingStatus } from "@/components/studio/ThinkingStatus";
 import { Button } from "@/components/ui/button";
+import { tap } from "@/hooks/useHaptic";
 import { isAbortError } from "@/lib/ai/abort-signal";
 import { generatePreview, getAiStatus, type AiStatus } from "@/lib/ai/generate";
+import { auditHtml } from "@/lib/html.quality";
 import { localPreviewHtml } from "@/lib/preview/local-templates";
+import type { PromptPreset } from "@/lib/prompt.presets";
 import { appendExportDraft, createExportDraft, finalizeExportDraft } from "@/lib/studio/export";
 import { clearOfflinePreview, persistOfflinePreview, readOfflinePreview } from "@/lib/pwa/offline";
 import { useOnline } from "@/lib/pwa/use-online";
 import { cn } from "@/lib/utils";
 import { useStudioStore } from "@/stores/studio-store";
 import { useWorkspaceStore } from "@/stores/workspace-store";
-import { Code2, Eye, MessageSquare } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Code2, Eye, MessageSquare, Sparkles, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type MobilePanel = "chat" | "code" | "preview";
+
+function gradeFor(score: number): string {
+  if (score >= 90) return "A";
+  if (score >= 80) return "B";
+  if (score >= 70) return "C";
+  if (score >= 50) return "D";
+  return "F";
+}
 
 function providerLabel(status: AiStatus | null, used: string | null): string {
   if (used === "mistral") return "Mistral";
@@ -66,8 +79,12 @@ export function StudioShell() {
   const removeProject = useWorkspaceStore((s) => s.removeProject);
   const [panel, setPanel] = useState<MobilePanel>("chat");
   const [showSource, setShowSource] = useState(false);
+  const [showQuality, setShowQuality] = useState(false);
+  const [slashOpen, setSlashOpen] = useState(false);
   const [status, setStatus] = useState<AiStatus | null>(null);
   const online = useOnline();
+
+  const quality = useMemo(() => (html ? auditHtml(html) : null), [html]);
   const thinkRef = useRef<HTMLDivElement>(null);
   const runId = useRef(0);
 
@@ -127,6 +144,8 @@ export function StudioShell() {
   async function run(promptOverride?: string, opts?: { fresh?: boolean }) {
     const prompt = (promptOverride ?? brief).trim();
     if (!prompt || running) return;
+    tap(12);
+    setSlashOpen(false);
     if (promptOverride) setBrief(prompt);
     const currentHtml = useStudioStore.getState().html;
     const revising = Boolean(currentHtml) && !opts?.fresh;
@@ -271,6 +290,18 @@ export function StudioShell() {
     }
   }
 
+  function handleSlashPick(preset: PromptPreset) {
+    tap();
+    setBrief(preset.template);
+    setSlashOpen(false);
+  }
+
+  function handleQualityFix(fixPrompt: string) {
+    tap();
+    setShowQuality(false);
+    void run(fixPrompt);
+  }
+
   return (
     <div className="flex h-full flex-col bg-bg text-fg" data-studio-shell>
       <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-surface px-3 sm:px-4">
@@ -399,23 +430,36 @@ export function StudioShell() {
             <label className="sr-only" htmlFor="brief">
               Brief
             </label>
-            <textarea
-              id="brief"
-              name="brief"
-              rows={3}
-              value={brief}
-              onChange={(e) => setBrief(e.target.value)}
-              onKeyDown={(e) => {
-                if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-                  e.preventDefault();
-                  if (!running) void run();
+            <div className="relative">
+              {slashOpen ? (
+                <SlashMenu
+                  query={brief}
+                  onPick={handleSlashPick}
+                  onClose={() => setSlashOpen(false)}
+                />
+              ) : null}
+              <textarea
+                id="brief"
+                name="brief"
+                rows={3}
+                value={brief}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setBrief(value);
+                  setSlashOpen(value.startsWith("/") && !/\s/.test(value));
+                }}
+                onKeyDown={(e) => {
+                  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                    e.preventDefault();
+                    if (!running) void run();
+                  }
+                }}
+                placeholder={
+                  html ? "Make the columns narrower…  (napíš / pre prompty)" : "Landing pre ateliér…  (napíš / pre prompty)"
                 }
-              }}
-              placeholder={
-                html ? "Make the columns narrower…" : "Landing pre ateliér, cenník a kontakt…"
-              }
-              className="min-h-20 w-full resize-none rounded-xl border border-border bg-card px-3 py-2.5 text-sm leading-relaxed text-fg placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-            />
+                className="min-h-20 w-full resize-none rounded-xl border border-border bg-card px-3 py-2.5 text-sm leading-relaxed text-fg placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+              />
+            </div>
             {running ? (
               <StopButton />
             ) : (
@@ -450,11 +494,59 @@ export function StudioShell() {
                   ? "Live preview"
                   : "Saved preview"}
             </p>
-            <ExportActions html={html} title={title} exportReady={exportReady && !running} />
+            <div className="flex shrink-0 items-center gap-1">
+              {quality ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    tap();
+                    setShowQuality((v) => !v);
+                  }}
+                  aria-label="Zobraziť quality audit"
+                  aria-pressed={showQuality}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 font-mono text-[11px] tabular-nums transition-colors hover:border-accent",
+                    showQuality ? "bg-card text-fg" : "text-muted",
+                  )}
+                  style={{
+                    color:
+                      quality.score >= 80
+                        ? "#5bbf7a"
+                        : quality.score >= 50
+                          ? "var(--color-accent)"
+                          : "#ef4444",
+                  }}
+                >
+                  <Sparkles className="size-3.5" />
+                  {quality.score}% · {gradeFor(quality.score)}
+                </button>
+              ) : null}
+              <ExportActions html={html} title={title} exportReady={exportReady && !running} />
+            </div>
           </div>
           {html ? (
             <div className="relative min-h-0 flex-1">
               <LivePreview html={html} title={title} />
+              {showQuality ? (
+                <div className="absolute right-3 top-3 z-20 flex max-h-[min(70%,420px)] w-72 flex-col overflow-hidden rounded-xl border border-border bg-bg shadow-2xl">
+                  <div className="flex shrink-0 items-center justify-between border-b border-border px-3 py-2">
+                    <span className="font-mono text-[10px] uppercase tracking-widest text-muted">
+                      Quality audit
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowQuality(false)}
+                      aria-label="Zavrieť quality audit"
+                      className="text-muted hover:text-fg"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                  <div className="min-h-0 flex-1 overflow-y-auto">
+                    <QualityPanel html={html} onFix={handleQualityFix} />
+                  </div>
+                </div>
+              ) : null}
               {running ? (
                 <div className="pointer-events-none absolute bottom-4 left-4">
                   <ThinkingStatus
@@ -497,7 +589,10 @@ export function StudioShell() {
           <button
             key={id}
             type="button"
-            onClick={() => setPanel(id)}
+            onClick={() => {
+              tap();
+              setPanel(id);
+            }}
             aria-current={panel === id ? "page" : undefined}
             className={cn(
               "flex h-12 flex-col items-center justify-center gap-0.5 text-xs uppercase tracking-wider",

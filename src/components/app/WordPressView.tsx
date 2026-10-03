@@ -18,9 +18,15 @@ import {
 import { compressWordPressImage } from "@/lib/wordpress-media";
 import { GRUPPA_DEFAULT_TAXONOMIES, GRUPPA_DEFAULT_TERMS } from "@/lib/wordpress/gruppa-schema";
 import { useStudioStore } from "@/stores/studio-store";
+import { tap } from "@/hooks/useHaptic";
 import { Link } from "@tanstack/react-router";
-import { Database, FileText, Globe, Image, Plus, RefreshCw, Trash2, Upload } from "lucide-react";
+import { Database, ExternalLink, FileText, Globe, Image, Pencil, Plus, RefreshCw, Trash2, Upload } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { toast } from "sonner";
+
+function editUrlFor(siteUrl: string, postId: number): string {
+  return `${siteUrl.replace(/\/+$/, "")}/wp-admin/post.php?post=${postId}&action=edit`;
+}
 
 type Tab = "posts" | "pages" | "media" | "gruppa";
 
@@ -39,12 +45,10 @@ export function WordPressView() {
   const [selected, setSelected] = useState<WordPressContent | null>(null);
   const [editor, setEditor] = useState({ title: "", slug: "", excerpt: "", content: "", status: "draft", featuredMedia: null as number | null });
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
 
   const refresh = useCallback(async (id = connectionId, nextTab = tab) => {
     if (!id) return;
     setBusy(true);
-    setMessage(null);
     try {
       if (nextTab === "media") {
         setMedia(await listWordPressMedia({ data: { id } }));
@@ -52,7 +56,7 @@ export function WordPressView() {
         setItems(await listWordPressContent({ data: { id, type: nextTab === "posts" ? "post" : "page", status, search, page, perPage: 20 } }));
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "WordPress sa nepodarilo načítať.");
+      toast.error(error instanceof Error ? error.message : "WordPress sa nepodarilo načítať.");
     } finally {
       setBusy(false);
     }
@@ -68,12 +72,17 @@ export function WordPressView() {
           void refresh(sites[0].id, tab);
         }
       })
-      .catch((error) => setMessage(error instanceof Error ? error.message : "Prihlásenie je potrebné."));
+      .catch((error) => toast.error(error instanceof Error ? error.message : "Prihlásenie je potrebné."));
   }, [isPending, refresh, tab, user?.id]);
 
   const filtered = useMemo(
     () => items.filter((item) => item.title.toLocaleLowerCase("sk").includes(search.toLocaleLowerCase("sk"))),
     [items, search],
+  );
+
+  const currentSiteUrl = useMemo(
+    () => connections.find((site) => site.id === connectionId)?.siteUrl ?? "",
+    [connections, connectionId],
   );
 
   if (isPending) {
@@ -103,16 +112,16 @@ export function WordPressView() {
       if (selected) {
         const { updateWordPressContent } = await import("@/lib/wordpress");
         await updateWordPressContent({ data: { id: connectionId, type: selected.type, contentId: selected.id, ...editor } });
-        setMessage("Obsah aktualizovaný");
+        toast.success("Obsah aktualizovaný");
       } else {
         await createWordPressContent({ data: { id: connectionId, type: tab === "pages" ? "page" : "post", ...editor } });
-        setMessage(editor.status === "publish" ? "Obsah publikovaný" : "Koncept uložený");
+        toast.success(editor.status === "publish" ? "Obsah publikovaný" : "Koncept uložený");
       }
       setSelected(null);
       setEditor({ title: "", slug: "", excerpt: "", content: "", status: "draft", featuredMedia: null });
       await refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Uloženie zlyhalo.");
+      toast.error(error instanceof Error ? error.message : "Uloženie zlyhalo.");
     } finally {
       setBusy(false);
     }
@@ -120,22 +129,41 @@ export function WordPressView() {
 
   async function exportProject() {
     if (!html || !connectionId) return;
+    tap(12);
     setBusy(true);
     try {
-      await exportToWordPress({ data: { id: connectionId, type: "post", title, content: html, publish: false } });
-      setMessage("Projekt bol uložený ako koncept vo WordPress.");
+      const created = await exportToWordPress({ data: { id: connectionId, type: "post", title, content: html, publish: false } });
+      const siteUrl = connections.find((site) => site.id === connectionId)?.siteUrl ?? "";
+      const viewUrl = created.link ?? "";
+      const editUrl = created.id && siteUrl ? editUrlFor(siteUrl, created.id) : "";
+      toast.success("Projekt uložený ako koncept vo WordPress", {
+        duration: 10000,
+        description: (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {viewUrl ? (
+              <a href={viewUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-fg hover:border-accent">
+                🚀 Zobraziť naživo
+              </a>
+            ) : null}
+            {editUrl ? (
+              <a href={editUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-fg hover:border-accent">
+                ✏️ Upraviť vo WP
+              </a>
+            ) : null}
+          </div>
+        ),
+      });
       await refresh(connectionId, "posts");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Export zlyhal.");
+      toast.error(error instanceof Error ? error.message : "Export zlyhal.");
     } finally {
       setBusy(false);
     }
-
   }
 
   async function uploadMedia(file: File) {
       if (!connectionId || !file.type.startsWith("image/") || file.size > 15 * 1024 * 1024) {
-        setMessage("Povolené sú iba obrázky do 15 MB pred kompresiou.");
+        toast.warning("Povolené sú iba obrázky do 15 MB pred kompresiou.");
         return;
       }
       setBusy(true);
@@ -143,10 +171,10 @@ export function WordPressView() {
         const compressed = await compressWordPressImage(file);
         await uploadWordPressMedia({ data: { id: connectionId, filename: compressed.filename, mimeType: compressed.mimeType, contentBase64: compressed.contentBase64 } });
         const savedPercent = Math.max(0, Math.round((1 - compressed.compressedBytes / compressed.originalBytes) * 100));
-        setMessage(`Médium nahrané ako WebP${savedPercent > 0 ? ` (ušetrených ${savedPercent} %)` : ""}`);
+        toast.success(`Médium nahrané ako WebP${savedPercent > 0 ? ` (ušetrených ${savedPercent} %)` : ""}`);
         await refresh(connectionId, "media");
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : "Nahrávanie zlyhalo.");
+        toast.error(error instanceof Error ? error.message : "Nahrávanie zlyhalo.");
       } finally {
         setBusy(false);
       }
@@ -155,7 +183,6 @@ export function WordPressView() {
   async function handleSyncGruppa() {
     if (!connectionId) return;
     setBusy(true);
-    setMessage(null);
     try {
       const result = await syncGruppaTaxonomyToWordPress({
         data: {
@@ -165,12 +192,12 @@ export function WordPressView() {
         },
       });
       if (result.ok) {
-        setMessage(`Úspešne synchronizovaných ${result.syncedTaxonomies} taxonómií a ${result.syncedTerms} termov priamo do JetEngine CCT.`);
+        toast.success(`Úspešne synchronizovaných ${result.syncedTaxonomies} taxonómií a ${result.syncedTerms} termov priamo do JetEngine CCT.`);
       } else {
-        setMessage(`Synchronizácia dokončená s chybami: ${result.errors.join("; ")}`);
+        toast.warning(`Synchronizácia dokončená s chybami: ${result.errors.join("; ")}`);
       }
     } catch (err: unknown) {
-      setMessage(err instanceof Error ? err.message : "Synchronizácia JetEngine CCT zlyhala.");
+      toast.error(err instanceof Error ? err.message : "Synchronizácia JetEngine CCT zlyhala.");
     } finally {
       setBusy(false);
     }
@@ -193,7 +220,6 @@ export function WordPressView() {
             <Button type="button" onClick={() => void exportProject()} disabled={!html || busy}><Globe className="size-4" /> Exportovať projekt</Button>
           </div>
         </div>
-        {message ? <p role="status" className="mt-4 rounded-xl border border-accent/30 bg-accent/10 p-3 text-sm text-muted">{message}</p> : null}
         <div className="mt-6 flex flex-wrap gap-2 border-b border-border">
           {([["posts", "Články", FileText], ["pages", "Stránky", FileText], ["media", "Médiá", Image], ["gruppa", "Gruppa CMS (CCT)", Database]] as const).map(([value, label, Icon]) => (
             <button key={value} type="button" onClick={() => { setTab(value); if (value !== "gruppa") void refresh(connectionId, value); }} className={`inline-flex min-h-11 items-center gap-2 border-b-2 px-4 text-sm ${tab === value ? "border-accent text-fg" : "border-transparent text-muted"}`}><Icon className="size-4" />{label}</button>
@@ -227,7 +253,7 @@ export function WordPressView() {
                   <div className="mt-3 flex flex-wrap gap-2">
                     <select aria-label="Filtrovať podľa statusu" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className="h-11 rounded-xl border border-border bg-card px-3 text-sm"><option value="all">Všetky statusy</option><option value="publish">Publikované</option><option value="draft">Koncepty</option><option value="pending">Čakajúce</option><option value="private">Súkromné</option></select>
                   </div>
-                  <div className="mt-4 space-y-2">{filtered.map((item) => <article key={`${item.type}-${item.id}`} className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-4"><button type="button" className="min-w-0 text-left" onClick={() => { setSelected(item); setEditor({ title: item.title, slug: item.slug, excerpt: item.excerpt, content: item.content, status: item.status, featuredMedia: item.featuredMedia }); }}><strong className="block truncate">{item.title || "(bez názvu)"}</strong><span className="text-xs text-muted">{item.status} · {item.comments} komentárov · {item.modified ? new Date(item.modified).toLocaleDateString("sk-SK") : "bez dátumu"}</span></button><Button type="button" variant="ghost" size="icon" aria-label="Zmazať obsah" onClick={() => { if (window.confirm("Naozaj chceš zmazať tento obsah?")) void deleteWordPressContent({ data: { id: connectionId, type: item.type, contentId: item.id } }).then(() => void refresh()); }}><Trash2 className="size-4" /></Button></article>)}</div>
+                  <div className="mt-4 space-y-2">{filtered.map((item) => <article key={`${item.type}-${item.id}`} className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-4"><button type="button" className="min-w-0 text-left" onClick={() => { setSelected(item); setEditor({ title: item.title, slug: item.slug, excerpt: item.excerpt, content: item.content, status: item.status, featuredMedia: item.featuredMedia }); }}><strong className="block truncate">{item.title || "(bez názvu)"}</strong><span className="text-xs text-muted">{item.status} · {item.comments} komentárov · {item.modified ? new Date(item.modified).toLocaleDateString("sk-SK") : "bez dátumu"}</span></button><div className="flex shrink-0 items-center gap-1">{item.link ? <a href={item.link} target="_blank" rel="noopener noreferrer" title="Zobraziť naživo" aria-label="Zobraziť naživo" className="inline-flex size-9 items-center justify-center rounded-lg text-muted hover:bg-card hover:text-fg"><ExternalLink className="size-4" /></a> : null}{item.id ? <a href={editUrlFor(currentSiteUrl, item.id)} target="_blank" rel="noopener noreferrer" title="Upraviť vo WordPress" aria-label="Upraviť vo WordPress" className="inline-flex size-9 items-center justify-center rounded-lg text-muted hover:bg-card hover:text-fg"><Pencil className="size-4" /></a> : null}<Button type="button" variant="ghost" size="icon" aria-label="Zmazať obsah" onClick={() => { if (window.confirm("Naozaj chceš zmazať tento obsah?")) void deleteWordPressContent({ data: { id: connectionId, type: item.type, contentId: item.id } }).then(() => { toast.success("Obsah zmazaný"); void refresh(); }); }}><Trash2 className="size-4" /></Button></div></article>)}</div>
                   {!filtered.length && !busy ? <p className="mt-4 rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted">Nenašli sa žiadne výsledky.</p> : null}
                   <div className="mt-4 flex justify-between"><Button type="button" variant="outline" disabled={page <= 1 || busy} onClick={() => setPage((value) => value - 1)}>Predchádzajúca</Button><span className="self-center text-sm text-muted">Strana {page}</span><Button type="button" variant="outline" disabled={items.length < 20 || busy} onClick={() => setPage((value) => value + 1)}>Ďalšia</Button></div>
                 </section>

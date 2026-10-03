@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { Copy, Download } from "lucide-react";
+import { Copy, Download, Package } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { copyText, downloadHtml, prepareHtmlExport, slugFromTitle } from "@/lib/studio/export";
+import { tap } from "@/hooks/useHaptic";
+import { buildPwaManifest, copyText, downloadHtml, downloadZip, prepareHtmlExport, slugFromTitle } from "@/lib/studio/export";
 
 export function ExportActions({
   html,
@@ -13,11 +15,33 @@ export function ExportActions({
   exportReady?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
+  const [zipping, setZipping] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const disabled = !html.trim() || !exportReady;
 
+  async function onZip() {
+    if (disabled || zipping) return;
+    tap();
+    const prepared = prepareHtmlExport(html);
+    if (!prepared.ok) {
+      setError(prepared.issues[0]?.message ?? "HTML export neprešiel validáciou.");
+      return;
+    }
+    setError(null);
+    setZipping(true);
+    try {
+      await downloadZip(slugFromTitle(title), prepared.html, buildPwaManifest(title));
+      toast.success("ZIP balíček stiahnutý (index.html + manifest.json)");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "ZIP sa nepodarilo vytvoriť.");
+    } finally {
+      setZipping(false);
+    }
+  }
+
   async function onCopy() {
     if (disabled) return;
+    tap();
     const prepared = prepareHtmlExport(html);
     if (!prepared.ok) {
       setError(prepared.issues[0]?.message ?? "HTML export neprešiel validáciou.");
@@ -50,6 +74,7 @@ export function ExportActions({
         disabled={disabled}
         aria-label="Download HTML"
         onClick={() => {
+          tap();
           const prepared = prepareHtmlExport(html);
           if (!prepared.ok) {
             setError(prepared.issues[0]?.message ?? "HTML export neprešiel validáciou.");
@@ -61,6 +86,17 @@ export function ExportActions({
       >
         <Download className="size-3.5" />
         .html
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        disabled={disabled || zipping}
+        aria-label="Stiahnuť ZIP balíček"
+        onClick={() => void onZip()}
+      >
+        <Package className="size-3.5" />
+        {zipping ? "ZIP…" : "ZIP"}
       </Button>
       {error ? <span className="max-w-48 text-right text-[10px] leading-tight text-rose-500">{error}</span> : null}
     </div>

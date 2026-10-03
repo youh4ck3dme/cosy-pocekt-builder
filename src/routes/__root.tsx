@@ -1,4 +1,5 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
+import { Toaster } from "sonner";
 import { AuthProvider } from "@/lib/auth/provider";
 import { AppShell } from "@/components/app/AppShell";
 import { PwaRegister } from "@/components/app/PwaRegister";
@@ -49,6 +50,7 @@ export const Route = createRootRoute({
             <Outlet />
           </AppShell>
         </AuthProvider>
+        <Toaster theme="dark" position="top-center" richColors closeButton />
         <Scripts />
       </body>
     </html>

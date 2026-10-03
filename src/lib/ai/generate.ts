@@ -1,4 +1,5 @@
 import { abortKind } from "@/lib/ai/abort-signal";
+import { getMistralKeys, isRotatableStatus, orderedMistralKeys } from "@/lib/ai/mistral.pool";
 import { injectCozyElements } from "@/lib/preview/cozy-elements";
 import { validateExportHtml } from "@/lib/studio/export";
 import { createServerFn } from "@tanstack/react-start";
@@ -146,7 +147,7 @@ plus a change request.
 Output the full updated HTML document now.`;
 
 function mistralKey(): string | null {
-  return (process.env.MISTRAL_API_KEY ?? "").trim() || null;
+  return getMistralKeys()[0] ?? null;
 }
 
 function geminiKey(): string | null {
@@ -227,7 +228,7 @@ async function complete(opts: {
   prompt: string;
   maxTokens: number;
   signal: AbortSignal;
-}): Promise<{ ok: true; text: string } | { ok: false; error: string; aborted?: boolean }> {
+}): Promise<{ ok: true; text: string } | { ok: false; error: string; status?: number; aborted?: boolean }> {
   if (opts.signal.aborted) {
     return { ok: false, error: "Cancelled", aborted: true };
   }
@@ -254,7 +255,7 @@ async function complete(opts: {
       return { ok: false, error: "Cancelled", aborted: true };
     }
     if (!res.ok) {
-      return { ok: false, error: formatProviderError(opts.model, res.status, raw) };
+      return { ok: false, error: formatProviderError(opts.model, res.status, raw), status: res.status };
     }
     const body = JSON.parse(raw) as {
       choices?: { message?: { content?: string } }[];
@@ -273,6 +274,39 @@ async function complete(opts: {
     }
     return { ok: false, error: `${opts.model} ${msg}` };
   }
+}
+
+// Mistral with key-pool rotation: tries keys in round-robin order and fails over
+// to the next key on rate-limit (429) or quota (402). Other errors stop early.
+async function completeMistral(opts: {
+  url: string;
+  model: string;
+  system: string;
+  prompt: string;
+  maxTokens: number;
+  signal: AbortSignal;
+}): Promise<{ ok: true; text: string } | { ok: false; error: string; status?: number; aborted?: boolean }> {
+  const keys = orderedMistralKeys();
+  if (keys.length === 0) {
+    return { ok: false, error: "No Mistral API key configured", status: 503 };
+  }
+  let last: { ok: false; error: string; status?: number; aborted?: boolean } = {
+    ok: false,
+    error: "Mistral request failed",
+    status: 502,
+  };
+  for (let i = 0; i < keys.length; i += 1) {
+    if (opts.signal.aborted) return { ok: false, error: "Cancelled", aborted: true };
+    const res = await complete({ ...opts, key: keys[i]! });
+    if (res.ok) return res;
+    if (res.aborted) return res;
+    last = res;
+    if (!isRotatableStatus(res.status)) break;
+    console.warn(
+      `[Mistral pool] key ${i + 1}/${keys.length} hit ${res.status}; rotating to next key…`,
+    );
+  }
+  return last;
 }
 
 function pack(text: string, provider: AiProvider, model: string): GenerateResult {
@@ -312,15 +346,25 @@ async function generateWithCascade(opts: {
       return { ok: false, error: "Cancelled", aborted: true, status: 499 };
     }
 
-    const res = await complete({
-      url: cfg.url,
-      key: cfg.key,
-      model: cfg.model,
-      system: opts.system,
-      prompt: opts.prompt,
-      maxTokens: MAX_TOKENS,
-      signal: opts.signal,
-    });
+    const res =
+      cfg.provider === "mistral"
+        ? await completeMistral({
+            url: cfg.url,
+            model: cfg.model,
+            system: opts.system,
+            prompt: opts.prompt,
+            maxTokens: MAX_TOKENS,
+            signal: opts.signal,
+          })
+        : await complete({
+            url: cfg.url,
+            key: cfg.key,
+            model: cfg.model,
+            system: opts.system,
+            prompt: opts.prompt,
+            maxTokens: MAX_TOKENS,
+            signal: opts.signal,
+          });
 
     if (res.ok) {
       return { ok: true, text: res.text, provider: cfg.provider, model: cfg.model };

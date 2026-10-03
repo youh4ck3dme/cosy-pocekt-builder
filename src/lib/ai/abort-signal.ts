@@ -1,4 +1,17 @@
-export const GENERATE_TIMEOUT_MS = 90_000;
+// Default raised to 500s so long/complex PWA generations don't hit a premature
+// abort. Server reads GENERATION_TIMEOUT_MS; the client bundle (where `process`
+// is absent) falls back to the 500s default via the try/catch.
+function resolveGenerateTimeout(): number {
+  try {
+    const raw = Number(process.env.GENERATION_TIMEOUT_MS);
+    if (Number.isFinite(raw) && raw > 0) return raw;
+  } catch {
+    /* process is not defined in the client bundle — use the default below */
+  }
+  return 500_000;
+}
+
+export const GENERATE_TIMEOUT_MS = resolveGenerateTimeout();
 
 export function combineAbortSignals(
   ...signals: AbortSignal[]

@@ -196,6 +196,39 @@ export function downloadHtml(filename: string, html: string) {
   URL.revokeObjectURL(url);
 }
 
+export function buildPwaManifest(title: string): string {
+  const name = title.trim() || "Pocket Build";
+  return JSON.stringify(
+    {
+      name,
+      short_name: name.slice(0, 24),
+      start_url: "./index.html",
+      display: "standalone",
+      background_color: "#12110f",
+      theme_color: "#12110f",
+      icons: [],
+    },
+    null,
+    2,
+  );
+}
+
+// jszip is imported dynamically so it lands in its own async chunk and never
+// inflates the initial client bundle (keeps the bundle-budget check green).
+export async function downloadZip(filename: string, html: string, manifest: string): Promise<void> {
+  const { default: JSZip } = await import("jszip");
+  const zip = new JSZip();
+  zip.file("index.html", html);
+  zip.file("manifest.json", manifest);
+  const blob = await zip.generateAsync({ type: "blob" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename.endsWith(".zip") ? filename : `${filename}.zip`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export async function copyText(text: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(text);
